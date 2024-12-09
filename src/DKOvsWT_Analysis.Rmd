@@ -1,0 +1,929 @@
+---
+title: "DKOvsWT_Analysis_281124"
+author: "Winnie Lei"
+date: "2024-11-28"
+output: html_document
+---
+# Analysis of Spatial Transcriptomics data
+Aim: Analysis of CD45+ and PanCK+ cell expression
+Steps:
+1. Batch correction to remove slide-dependent effects from both Plate A and B
+2. Perform deconvolution and redeconvolution analysis of DKO and WT CD45+ data
+3. Differential expression analysis of CD45 cells
+4. Differentail epxression analysis of PanCK cells
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Set working environment, warning=FALSE}
+setwd(".")
+library(NanoStringNCTools)
+library(GeomxTools)
+library(GeoMxWorkflows)
+library(knitr)
+library(ggplot2)
+library(SpatialDecon)
+library(standR)
+library(colorspace)
+library(ggh4x)
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(limma)
+library(ExperimentHub)
+library(SpatialExperiment)
+library(Rtsne)
+library(umap)
+library(SeuratObject)
+library(Seurat)
+library(ComplexHeatmap)
+library(nichenetr)
+```
+
+# Analysis of DKO in CD45+ and PanCK spatial transcriptomics data
+
+https://bioconductor.org/packages/release/bioc/vignettes/standR/inst/doc/Quick_start.html
+
+## 1. Load data 
+
+```{r Read GeomX data}
+PlateA = readRDS("PlateA_GeoMx.rds")
+PlateB = readRDS("PlateB_GeoMx.rds")
+
+common_row = intersect(rownames(PlateA$data), rownames(PlateB$data))
+all_Plate_Count = cbind(PlateA$data[common_row,],PlateB$data[common_row,])
+all_Plate_Count = cbind(TargetName = rownames(all_Plate_Count), 
+                        as.data.frame(all_Plate_Count))
+
+PlateA$sampleData$Plate = "PlateA"
+PlateB$sampleData$Plate = "PlateB"
+common_col = intersect(colnames(PlateA$sampleData), colnames(PlateB$sampleData))
+all_Plate_Sample = rbind(PlateA$sampleData[common_col],PlateB$sampleData[common_col])
+all_Plate_Sample = cbind(SegmentDisplayName = rownames(all_Plate_Sample), 
+                         all_Plate_Sample)
+colnames(all_Plate_Sample)[4] = "SlideName"
+colnames(all_Plate_Sample)[c(12,13)] = c("ROICoordinateX", "ROICoordinateY")
+all_Plate_Sample[all_Plate_Sample$Segment == "panCK","Segment"] = "PanCK"
+
+common_row = intersect(rownames(PlateA$annotationData), rownames(PlateB$annotationData))
+all_Plate_Annotation = rbind(PlateA$annotationData[common_row,],
+                         PlateB$annotationData[common_row,])
+
+all_Plate_Annotation = PlateB$annotationData[common_row,]
+all_Plate_Annotation = cbind(TargetName = rownames(all_Plate_Annotation), 
+                             all_Plate_Annotation)
+```
+
+
+```{r Creating CD45 only standR object}
+# Remove Full ROI data
+CD45_Plate_Sample = all_Plate_Sample[!all_Plate_Sample$Segment == "Full ROI",]
+CD45_Plate_Sample = CD45_Plate_Sample[CD45_Plate_Sample$Segment == "CD45",]
+CD45_Plate_Sample = CD45_Plate_Sample[CD45_Plate_Sample$Target %in% c("DKO", "WT"),]
+CD45_Plate_Count = all_Plate_Count[c("TargetName",rownames(CD45_Plate_Sample))]
+
+spe <- standR::readGeoMx(CD45_Plate_Count, 
+                         CD45_Plate_Sample, 
+                         featureAnnoFile = all_Plate_Annotation,
+                         rmNegProbe = FALSE
+                         )
+```
+
+## 2. Batch correction with slide number
+
+```{r QC with standR package}
+colData(spe)$regions <- paste0(colData(spe)$region,"_",colData(spe)$SegmentLabel) |> 
+  (\(.) gsub("_Geometric Segment","",.))() |>
+  paste0("_",colData(spe)$pathology) |>
+  (\(.) gsub("_NA","_ns",.))()
+
+library(ggalluvial)
+
+plotSampleInfo(spe, column2plot = c("SlideName", "Plate","Target","Segment"))
+```
+
+```{r Gene level QC, fig.width = 8}
+spe <- addPerROIQC(spe, rm_genes = FALSE)
+
+spe <- spe[,rownames(colData(spe))[colData(spe)$lib_size > 50000]]
+```
+
+```{r Inspecting of variations on ROI level}
+colData(spe)$biology <- paste0(colData(spe)$Target, 
+                               "_", 
+                               colData(spe)$Segment)
+plotRLExpr(spe, ordannots = "biology", assay = 2, col = biology)
+```
+
+PCA
+
+```{r Draw PCA}
+drawPCA(spe, assay = 2, col = biology, shape = SlideName)
+```
+
+
+```{r Perform batch correction}
+spe <- findNCGs(spe, batch_name = "SlideName", top_n = 500)
+
+metadata(spe) |> names()
+
+```
+
+### RUV4 method 
+
+```{r Plot batch corrected PCA, warning = FALSE, fig.width = 12}
+spe_list = list()
+for (i in seq(1,12)){
+  spe_ruv <- geomxBatchCorrection(spe,
+                                factors = "biology",
+                                batch = "SlideName",
+                                NCGs = metadata(spe)$NCGs,
+                                k = i)
+  spe_list[[i]] = spe_ruv
+  p = plotPairPCA(spe_ruv,
+            assay = 2,
+            color = biology,
+            shape = SlideName,
+            useNames = FALSE,
+            title = paste0("RUV4 k = ",i))
+  print(p)
+}
+```
+
+```{r Plot tsne of batch corrected by plate and slide name, fig.width = 8, warning = FALSE}
+for (i in 1:length(spe_list)){
+  spe_ruv = spe_list[[i]]
+  m_data = colData(spe_ruv)
+  tsne <- Rtsne(t(assay(spe_ruv, "logcounts")),
+                perplexity = floor((nrow(t(assay(spe_ruv, "logcounts"))) - 1) / 3),
+                dims = 2)
+  df <- data.frame(x = tsne$Y[,1],
+                 y = tsne$Y[,2],
+                 SlideName = m_data[colnames(assay(spe_ruv, "logcounts")),"SlideName"], 
+                 Biology = m_data[colnames(assay(spe_ruv, "logcounts")),"biology"]
+                 )
+  p = ggplot(df, aes(x, y, colour = Biology, shape = SlideName)) + 
+    geom_point()+
+    ggtitle(paste0("tSNE of k = ",i))
+  print(p)
+}
+```
+
+```{r Plot umap of batch corrected by plate and slide name, fig.width = 8, warning = FALSE}
+for (i in 1:length(spe_list)){
+  spe_ruv = spe_list[[i]]
+  m_data = colData(spe_ruv)
+  umap <- umap(t(assay(spe_ruv, "logcounts")))
+  df <- data.frame(x = umap$layout[,1],
+                 y = umap$layout[,2],
+                 SlideName = m_data[colnames(assay(spe_ruv, "logcounts")),"SlideName"], 
+                 Biology = m_data[colnames(assay(spe_ruv, "logcounts")),"biology"]
+                 )
+  p = ggplot(df, aes(x, y, colour = Biology, shape = SlideName)) + 
+    geom_point() +
+    ggtitle(paste0("UMAP of k = ",i))
+  print(p)
+}
+```
+
+Proceedkng with k=10 RUV4 for downstream analysis.
+
+```{r Extract k at for downstream analysis}
+final_spe = spe_list[[10]]
+plotRLExpr(final_spe, assay = 2, color = SlideName) + ggtitle("RUV4")
+```
+
+```{r Create data from batch corrected }
+Plate_data = prepareSpatialDecon(
+  final_spe,
+  assay2use = "logcounts",
+  negProbeName = "NegProbe-WTX",
+  pool = NA
+)
+norm = Plate_data$normCount 
+bg = Plate_data$backGround
+```
+
+```{r Plot heatmap after batch correction}
+annot = colData(final_spe)
+annot = annot[match(colnames(Plate_data$normCount), rownames(annot)),]
+heat_ann <- data.frame(annot$Target, annot$Segment)
+colnames(heat_ann) <- c('Target', 'Segment')
+colours <- list('Target' = c('WT' = 'brown3', 'DKO' = 'royalblue'),
+  'Segment' = c('PanCK' = 'gold', "CD45" = "deepskyblue4"))
+
+colAnn <- HeatmapAnnotation(df = heat_ann,
+  which = 'col',
+  col = colours,
+  annotation_width = unit(c(1, 4), 'cm'),
+  gap = unit(1, 'mm'))
+
+
+hmap <- ComplexHeatmap::Heatmap(
+  as.matrix(Plate_data$normCount),
+  name = "expression",
+  # col = colorRamp2(c(-3, 0, 3), c("green", "white", "red")), 
+  show_row_names = FALSE,
+  show_column_names = FALSE,
+  cluster_rows = TRUE,
+  cluster_columns = TRUE,
+  show_column_dend = TRUE,
+  show_row_dend = TRUE,
+  row_dend_reorder = TRUE,
+  column_dend_reorder = TRUE,
+  clustering_method_rows = "ward.D2",
+  clustering_method_columns = "ward.D2",
+  width = unit(100, "mm"),
+  top_annotation=colAnn)
+
+draw(hmap, heatmap_legend_side="left", annotation_legend_side="right")
+```
+
+## 3. Perform deconvolution with safeTME
+
+```{r Map deconvolution to safeTME}
+annot$istumor = annot$Segment == "PanCK"
+
+## add class colour
+class_dict <- c("Non_Humanised WT" = "#ff7f00",
+                  "Matrigel" = "#33a02c",
+                  "DKO" = "#e41a1c",
+                  "WT" = "#377eb8")
+```
+
+```{r Merge safeTME cells}
+n_safeTME.matches = list(
+  "Others" = c("neutrophils","plasma","endothelial.cells","fibroblasts"),
+  "Monocytes" = c("monocytes.C","monocytes.NC.I","macrophages", "mast"),
+  "DCs" = c("pDCs","mDCs"),
+  "B cells" = c("B.naive","B.memory"),
+  "CD8 Naive" = "T.CD8.naive",
+  "CD8 Central" = "T.CD8.memory",
+  "Tregs" = "Treg",
+  "CD4 Naive" = "T.CD4.naive",
+  "CD4 Central" = "T.CD4.memory",
+  "CD4/8 Effector" = "NK"
+)
+
+```
+
+```{r Perform with refined SafeTME deconvolution}
+safeTME_res_merged = spatialdecon(norm = as.matrix(norm),
+                   bg = bg,
+                   X = safeTME,
+                   align_genes = TRUE,
+                   cell_counts = annot$Nuclei,
+                   cellmerges = n_safeTME.matches,
+                   n_tumor_clusters = 5)
+
+```
+
+```{r Create new colour dictionary}
+cellPalette_merged = c("Others" = "white",
+                       "Monocytes" = "#09578D",
+                       "DCs" = "#BDBD20",
+                       "B cells" = "#94C794",
+                       "CD8 Naive" = "#FF7D02",
+                       "CD8 Central" = "#D6AEA0",
+                       "Tregs" = "#9266BA",
+                       "CD4 Naive" = "#726281",
+                       "CD4 Central" = "#E176C0", 
+                       "CD4/8 Effector" = "#D52627")
+```
+
+```{r Plot merged safeTME results, fig.width = 6, fig.height = 5}
+safeTME_res_merged_long <- reshape2::melt(data = safeTME_res_merged$cell.counts,
+                id.vars = c("X"),
+                variable.name = "SampleName",
+                value.name = "percent")
+safeTME_res_merged_long = safeTME_res_merged_long[safeTME_res_merged_long$L1 == "cell.counts",]
+colnames(safeTME_res_merged_long) <- c("CellTypes","Name", "percent")
+
+safeTME_res_merged_long <- merge(safeTME_res_merged_long,
+               annot[c("Target","Segment")],
+               by.x=c("Name"),
+               by.y = 0)
+
+safeTME_res_merged_PD <- aggregate(safeTME_res_merged_long[c("percent")], 
+                      list(safeTME_res_merged_long$Target,
+                           safeTME_res_merged_long$'CellTypes'), 
+                      mean)
+
+colnames(safeTME_res_merged_PD) <- c("Target", "CellTypes", "Mean")
+
+safeTME_res_merged_PD$Class <- factor(safeTME_res_merged_PD$Target, 
+                                              levels=c("DKO","WT","Matrigel"))
+
+ggplot(safeTME_res_merged_PD, 
+       aes(fill = CellTypes, 
+           y = Mean, 
+           x = Class)) + 
+    geom_bar(position = "fill", color = "black",
+             stat = "identity") +
+    scale_fill_manual(values = cellPalette_merged) +
+    theme(plot.margin = margin(0, 0, 0, 0, "pt"),
+          legend.justification = "top") +
+  guides(fill=guide_legend(title = "Cell types")) +
+  ylab("Average cell abundance") + 
+  xlab("Sample class")+theme_bw() + scale_y_continuous(expand = c(0, 0))
+```
+
+```{r Boxplot and statistical analysis for safeTME, fig.height = 8, fig.width = 15, warning = FALSE}
+ct_plt <- list()
+count <- 1
+safeTME_res_merged_long_df = as.data.frame(safeTME_res_merged_long)
+safeTME_res_merged_long_df = safeTME_res_merged_long_df[safeTME_res_merged_long_df$Segment == "CD45",]
+safeTME_res_merged_long_df = safeTME_res_merged_long_df[!safeTME_res_merged_long_df$Target == "Matrigel",]
+for(ct in unique(safeTME_res_merged_long_df$CellTypes)){
+    data = safeTME_res_merged_long_df[safeTME_res_merged_long_df$CellTypes==ct,]
+    res.aov2 <- data %>% welch_anova_test(percent ~ Target)
+ 
+    p <- ggboxplot(data, x = "Target", y = "percent",
+              color = "Target", palette = class_dict) +
+      facet_grid(. ~ CellTypes)+
+      theme(axis.title.x=element_blank(), 
+            axis.text.x=element_blank(),
+            axis.ticks.x=element_blank())
+  ct_plt[[count]] = p
+  count = count + 1
+ 
+}
+ggarrange(plotlist=ct_plt, nrow = 3, ncol = 6)
+```
+
+```{r Plot all CD45 merged safeTME deconvolution results, fig.width = 12, fig.height = 6}
+ggplot(as.data.frame(safeTME_res_merged_long), 
+       aes(fill = CellTypes, 
+           y = percent, 
+           x = Name)) + 
+    geom_bar(position = "fill", color = "black",
+             stat = "identity") +
+    scale_fill_manual(values = cellPalette_merged) +
+  guides(fill=guide_legend(title = "Cell types")) + 
+  ylab("Cell abundance") + 
+  xlab("Sample class") +
+  theme_bw() + 
+  facet_nested(.~ Target, scales = "free", space = "free") +
+  theme(axis.title.x=element_blank(), 
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+          legend.justification = "top")+ 
+  scale_y_continuous(expand = c(0, 0))
+```
+
+```{r Plot as bubble plot, fig.width = 15, fig.height = 4, warning = FALSE}
+df <- reshape2::melt(data = safeTME_res_merged$cell.counts,
+                id.vars = c("X"),
+                variable.name = "SampleName",
+                value.name = "percent")
+df = df[df$L1 == "cell.counts",]
+colnames(df) <- c("CellTypes","Name", "percent")
+
+df <- merge(df,
+               annot[c("Target","Segment")],
+               by.x=c("Name"),
+               by.y = 0)
+df = df[df$Segment == "CD45",]
+df$CellColour = cellPalette_merged[df$CellTypes]
+
+df$percent[df$percent == 0]<-NA
+df$Counts = df$percent
+df = as.data.frame(df)
+df$Name = gsub(".dcc","",str_sub(df$Name,-8,-1))
+df$CellTypes = as.factor(df$CellTypes)
+
+df %>% 
+  ggplot(aes(x = Name, 
+             y = CellTypes, 
+             color = CellTypes, 
+             size = Counts)) + 
+  geom_point(aes(fill = CellTypes), colour = "black" ,pch=21) +
+  scale_fill_manual(values = cellPalette_merged) + 
+  theme_bw() +
+  theme(axis.line  = element_blank(),
+        axis.text.x = element_text(angle=90, hjust=1, vjust = 0.3),
+        strip.placement = "outside",
+        strip.background = element_rect(colour="black", fill="white")) +
+  scale_size(range = c(1,9.5)) +
+
+  ylab('') +
+  xlab('') +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text( size = 10),
+        axis.text.x = element_text( size = 10),
+        plot.margin = unit(c(0, 0, 0, 0), "cm")) + 
+  facet_grid2(.~Target,
+             scales = "free_x",
+             space= "free_x",
+              switch="x") 
+  
+```
+
+```{r Save safeTME deconvolution result}
+## tidy up results
+safeTME_result = as.data.frame(safeTME_res_merged_long)
+safeTME_result = safeTME_result[c("Name","CellTypes","percent","Target")]
+colnames(safeTME_result) = c("Name","CellTypes","Count","Condition")
+safeTME_result$Name = gsub(".dcc","",str_sub(safeTME_result$Name,-8,-1))
+write.csv(safeTME_result, "../res/final_results_281124/CD45_Deconvolution_SafeTME_Counts.csv")
+```
+
+## 5. Repeat deconvolution with Immune Census HCA
+
+```{r Get immune census HCA}
+IC_HCA <- download_profile_matrix(species = "Human",
+                                       age_group = "Adult", 
+                                       matrixname = "ImmuneCensus_HCA")
+
+IC_HCA_cellPalette = c("pro.B.cell" = "#94C794",
+                       "naive.B.cell" = darken("#94C794",0.3),
+                       "precursor.B.cell" = lighten("#94C794",0.3),
+                       "memory.B.cell" = darken("#94C794",0.5),
+                       "naive.CD8+.T.cell" = "#FF7D02",
+                       "T.helper.cell" = lighten("#9266BA",0.2),
+                       "CD4+.naive.T.cell" = "#726281",
+                       "cytotoxic.T.cell.type.2" = "#D52627",
+                       "cytotoxic.T.cell" = "#D52627",
+                       "cytotoxic.T.cell.type.1" = "#D52627")
+```
+
+```{r Remove some of the cell types absent in the PBMCs in Immune HCA}
+## Removing categories 6,7,8,10,13,14
+IC_HCA_n = IC_HCA[,c("naive.B.cell","precursor.B.cell","pro.B.cell", 
+                    "cytotoxic.T.cell.type.2","CD4+.naive.T.cell","T.helper.cell",
+                    "naive.CD8+.T.cell", "memory.B.cell","cytotoxic.T.cell.type.1" )]
+IC_HCA_res_n = spatialdecon(norm = as.matrix(norm),
+                   bg = bg,
+                   X = IC_HCA_n,
+                   align_genes = TRUE,
+                   cell_counts = annot$Nuclei,
+                   n_tumor_clusters = 5)
+```
+
+```{r Tidy ICHCA new decon data for CD45, warning=FALSE}
+IC_HCA_res_n_long <- reshape2::melt(data = IC_HCA_res_n$cell.counts,
+                id.vars = c("X"),
+                variable.name = "SampleName",
+                value.name = "percent")
+IC_HCA_res_n_long = IC_HCA_res_n_long[IC_HCA_res_n_long$L1 == "cell.counts",]
+colnames(IC_HCA_res_n_long) <- c("CellTypes","Name", "percent")
+IC_HCA_res_n_long <- merge(IC_HCA_res_n_long,
+               annot[c("Target","Segment")],
+               by.x=c("Name"),
+               by.y = 0)
+
+IC_HCA_res_n_PD <- aggregate(IC_HCA_res_n_long[c("percent")], 
+                      list(IC_HCA_res_n_long$Target,
+                           IC_HCA_res_n_long$Segment,
+                           IC_HCA_res_n_long$'CellTypes'), 
+                      mean)
+
+colnames(IC_HCA_res_n_PD) <- c("Target", "Segment", "CellTypes", "Mean")
+IC_HCA_res_n_PD$class_colour <- class_dict[IC_HCA_res_n_PD$Target]
+```
+
+```{r Generate average  new IC HCA plot with only CD45, warning = FALSE, fig.width = 6, fig.height = 5}
+IC_HCA_res_n_PD = IC_HCA_res_n_PD[IC_HCA_res_n_PD$Segment == "CD45",]
+IC_HCA_res_n_PD = IC_HCA_res_n_PD[!IC_HCA_res_n_PD$Target == "Matrigel",]
+IC_HCA_res_n_PD$Class <- factor(IC_HCA_res_n_PD$Target, 
+                                              levels=c("DKO","WT"))
+
+ggplot(IC_HCA_res_n_PD, 
+       aes(fill = CellTypes, 
+           y = Mean, 
+           x = Class)) + 
+    geom_bar(position = "fill", color = "black",
+             stat = "identity") +
+  scale_fill_manual(values = IC_HCA_cellPalette) +
+    theme(plot.margin = margin(0, 0, 0, 0, "pt"),
+          legend.justification = "top") +
+  guides(fill=guide_legend(title = "Cell types")) + 
+  ylab("Average proportional cell abundance") + 
+  xlab("Sample class")+theme_bw() + scale_y_continuous(expand = c(0, 0))
+```
+
+```{r Plot all CD45 new ICHCA deconvolution results, fig.width = 12, fig.height = 6}
+n_plot_data = IC_HCA_res_n_long[IC_HCA_res_n_long$Segment == "CD45",]
+n_plot_data = n_plot_data[!n_plot_data$Target == "Matrigel",]
+ggplot(as.data.frame(n_plot_data), 
+       aes(fill = CellTypes, 
+           y = percent, 
+           x = Name)) + 
+    geom_bar(position = "fill", color = "black",
+             stat = "identity") +
+  guides(fill=guide_legend(title = "Cell types")) + 
+  scale_fill_manual(values = IC_HCA_cellPalette) +
+  ylab("Cell abundance by proportion") + 
+  xlab("Sample class") +
+  theme_bw() + 
+  facet_nested(.~ Target, scales = "free", space = "free") +
+  theme(axis.title.x=element_blank(), 
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+          legend.justification = "top")+ 
+  scale_y_continuous(expand = c(0, 0))
+```
+
+```{r Boxplot and statistical analysis for new IC HCA, fig.height = 8, fig.width = 15, warning = FALSE}
+ct_plt <- list()
+count <- 1
+IC_HCA_res_n_long_df = as.data.frame(IC_HCA_res_n_long)
+for(ct in unique(IC_HCA_res_n_long_df$CellTypes)){
+    data = IC_HCA_res_n_long_df[IC_HCA_res_n_long_df$CellTypes==ct,]
+    res.aov2 <- data %>% welch_anova_test(percent ~ Target)
+ 
+    p <- ggboxplot(data, x = "Target", y = "percent",
+              color = "Target", palette = class_dict) +
+      facet_grid(. ~ CellTypes)+
+      theme(axis.title.x=element_blank(), 
+            axis.text.x=element_blank(),
+            axis.ticks.x=element_blank())
+  ct_plt[[count]] = p
+  count = count + 1
+ 
+}
+ggarrange(plotlist=ct_plt, nrow = 3, ncol = 6)
+```
+
+```{r Plot as bubble plot with ICHCA results, fig.width = 15, fig.height = 3}
+df = IC_HCA_res_n_long
+df = as.data.frame(df)
+df$CellTypes <- droplevels(df$CellTypes)
+
+df$percent[df$percent == 0]<-NA
+df$Name = gsub(".dcc","",str_sub(df$Name,-8,-1))
+df = df[df$CellTypes %in% c("cytotoxic.T.cell.type.2","precursor.B.cell","pro.B.cell"),]
+df$CellTypes = gsub("cytotoxic.T.cell.type.2","cytotoxic.T.cell",df$CellTypes)
+
+df$Count = df$percent
+df$CellTypes = as.factor(df$CellTypes)
+
+df %>% 
+  ggplot(aes(x = Name, 
+             y = CellTypes, 
+             color = CellTypes, 
+             size = Count)) + 
+  geom_point(aes(fill = CellTypes), colour = "black" ,pch=21) +
+  scale_fill_manual(values = IC_HCA_cellPalette) + 
+  theme_bw() +
+  theme(axis.line  = element_blank(),
+        axis.text.x = element_text(angle=90, hjust=1),
+        strip.placement = "outside",
+        strip.background = element_rect(colour="black", fill="white")) +
+  scale_size(range = c(1,9.5)) +
+
+  ylab('') +
+  xlab('') +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text( size = 10),
+        axis.text.x = element_text( size = 10),
+        plot.margin = unit(c(0, 0, 0, 0), "cm")) + 
+  facet_grid2(.~Target, 
+             scales = "free_x",
+             space= "free_x",
+              switch="x")
+```
+
+```{r Save Immune_Census deconvolution result}
+## tidy up results
+ImmuneCensus_result = as.data.frame(IC_HCA_res_n_long)
+ImmuneCensus_result = ImmuneCensus_result[c("Name","CellTypes","percent","Target")]
+colnames(ImmuneCensus_result) = c("Name","CellTypes","Count","Condition")
+ImmuneCensus_result$Name = gsub(".dcc","",str_sub(ImmuneCensus_result$Name,-8,-1))
+write.csv(ImmuneCensus_result, "../res/final_results_281124/CD45_Deconvolution_ImmuneCensus_Counts.csv")
+```
+
+## 6. Perform differential expression analysis in CD45
+
+```{r Perform DEGs on mapped CD45}
+library(edgeR)
+CD45_Sample = all_Plate_Sample[!all_Plate_Sample$Segment == "Full ROI",]
+CD45_Sample = CD45_Sample[CD45_Sample$Segment == "CD45",]
+CD45_Sample = CD45_Sample[CD45_Sample$Target %in% c("WT","DKO"),]
+CD45_Sample = CD45_Sample[CD45_Sample$Plate == "PlateA",]
+CD45_Count = all_Plate_Count[rownames(CD45_Sample)]
+
+comp1_d0 <- DGEList(CD45_Count)
+keep <- filterByExpr(comp1_d0)
+y <- comp1_d0[keep, ,keep.lib.sizes=FALSE]
+y <- calcNormFactors(y)
+
+target = factor(CD45_Sample$Target)
+batch = factor(CD45_Sample$SlideName)
+
+comp1_mm <- model.matrix(~0 + target + batch)
+colnames(comp1_mm)[c(1:2)] = c("DKO","WT")
+colnames(comp1_mm) = gsub(" ","",colnames(comp1_mm))
+
+comp1_y <- voom(y, comp1_mm, plot = F)
+comp1_fit <- lmFit(comp1_y, comp1_mm)
+
+cmat <- makeContrasts(diff1= DKO-WT,
+                      levels=comp1_mm)
+
+comp1_tmp <- contrasts.fit(comp1_fit, cmat)
+comp1_tmp <- eBayes(comp1_tmp)
+CD45_summary <- summary(decideTests(comp1_tmp, adjust.method="BH", p.value=0.1))
+CD45_summary
+```
+
+```{r Refit eBayes for only DKO minus WT}
+comp1_top.table <- topTable(comp1_tmp, sort.by = "P", n = Inf)
+# comp1_top.table
+```
+
+```{r Plot results for DKO vs WT with CD45, warning = FALSE, fig.width = 10, fig.height = 7}
+library(EnhancedVolcano)
+## Plot volcano plots
+keyvals <- ifelse(
+  comp1_top.table$P.Value < 0.1, 
+  ifelse(comp1_top.table$logFC < -0.5, 'royalblue',
+         ifelse(comp1_top.table$logFC > 0.5, 'red',
+                'grey')), 'grey')
+                keyvals[is.na(keyvals)] <- 'grey'
+                  names(keyvals)[keyvals == 'red'] <- 'high'
+                  names(keyvals)[keyvals == 'grey'] <- 'mid'
+                  names(keyvals)[keyvals == 'royalblue'] <- 'low'
+                  
+EnhancedVolcano(comp1_top.table,
+              lab = rownames(comp1_top.table),
+              x = 'logFC',
+              y = 'P.Value',
+              pCutoff = 0.1,
+              FCcutoff = 0.5,
+              labSize = 3,
+              colCustom = keyvals,
+              title = "DKO vs WT",
+              subtitle = "CD45 cells"
+              ) 
+```
+
+```{r Perform Pathway enrichment analysis with CD45}
+library(clusterProfiler)
+library(enrichplot)
+library(org.Hs.eg.db)
+
+CH_peInput <- comp1_top.table$logFC
+names(CH_peInput) <- rownames(comp1_top.table)
+CH_peInput <-na.omit(CH_peInput )
+CH_peInput  = sort(CH_peInput , decreasing = TRUE)
+
+CH_gse <- gseGO(geneList=CH_peInput,
+                 ont ="ALL",
+                 keyType = "ALIAS",
+                 minGSSize = 3,
+                 nPermSimple = 10000,
+                 maxGSSize = 800,
+                 pvalueCutoff = 1,
+                 pAdjustMethod = "BH",
+                 verbose = TRUE,
+                 OrgDb = org.Hs.eg.db)
+
+dotplot(CH_gse, 
+        showCategory=10, 
+        split=".sign") + 
+  facet_grid(.~.sign)+
+  theme(axis.text.y =element_text(size=8))
+```
+```{r Simplify enrichment for CD45 GO GSEA}
+CH_gse_sim <- simplify(
+    CH_gse,
+    cutoff = 0.7,
+    by = "p.adjust",
+    select_fun = min,
+    measure = "Wang",
+    semData = NULL
+)
+```
+
+
+```{r Perform Pathway ernichment for KEGG with CD45}
+entrez_CH_peInput = CH_peInput
+entrez_CH_peInput <- entrez_CH_peInput[!is.na(names(entrez_CH_peInput))]
+entrez_CH_peInput<-na.omit(entrez_CH_peInput)
+entrez_CH_peInput = sort(entrez_CH_peInput, decreasing = TRUE)
+
+ids<-bitr(names(CH_peInput), fromType = "SYMBOL", toType = "ENTREZID", OrgDb="org.Hs.eg.db")
+dedup_ids = ids[!duplicated(ids[c("SYMBOL")]),]
+df2 = comp1_top.table[rownames(comp1_top.table) %in% dedup_ids$SYMBOL,]
+df2$Y = dedup_ids$ENTREZID
+cd45_gene_list <- df2$logFC   
+names(cd45_gene_list) <- df2$Y
+cd45_gene_list<-na.omit(cd45_gene_list)
+cd45_gene_list = sort(cd45_gene_list, decreasing = TRUE)
+
+kegg_gsea_CH <- gseKEGG(geneList     = cd45_gene_list,
+               organism     = "hsa",
+               minGSSize    = 3,
+               maxGSSize    = 800,
+               pvalueCutoff = 1,
+               pAdjustMethod = "BH",
+               keyType       = "ncbi-geneid")
+```
+
+```{r Plot KEGG pathways enrichment}
+dotplot(kegg_gsea_CH, 
+        showCategory=10, 
+        split=".sign") + 
+  facet_grid(.~.sign)+
+  theme(axis.text.y =element_text(size=8))
+```
+
+```{r Reactome enrichment with CD45}
+library(ReactomePA)
+reactome_GSEA <- gsePathway(cd45_gene_list,
+               minGSSize    = 3,
+               maxGSSize    = 800,
+               pvalueCutoff = 1,
+                pAdjustMethod = "BH", 
+                verbose = FALSE)
+```
+
+```{r Plot Reactome pathways enrichment in CD45}
+dotplot(reactome_GSEA, 
+        showCategory=10, 
+        split=".sign") + 
+  facet_grid(.~.sign)+
+  theme(axis.text.y =element_text(size=8))
+```
+
+```{r Write Enrichment analysis results for CD45 data}
+CH_ges_df = as.data.frame(CH_gse_sim)
+React_df = as.data.frame(reactome_GSEA)
+React_df$ONTOLOGY = "Reactome"
+KEGG_df = as.data.frame(kegg_gsea_CH)
+KEGG_df$ONTOLOGY = "KEGG"
+gse_res = rbind(rbind(CH_ges_df, React_df),KEGG_df)
+write.csv(gse_res,"../res/final_results_281124/CD45_PathwayEnrichment.csv")
+write.csv(comp1_top.table, "../res/final_results_281124/CD45_DEGs.csv")
+```
+
+
+## 7. Perform differential expression analysis for PanCK data
+
+```{r PanCK differential expression analysis}
+## Create data for analysis
+PanCK_Sample = all_Plate_Sample[!all_Plate_Sample$Target == "Full ROI",]
+PanCK_Sample = PanCK_Sample[PanCK_Sample$Segment == "PanCK",]
+PanCK_Count = all_Plate_Count[rownames(PanCK_Sample)]
+
+comp2_d0 <- DGEList(PanCK_Count)
+target = factor(PanCK_Sample$Target)
+batch = factor(PanCK_Sample$SlideName)
+
+comp2_mm <- model.matrix(~0 + target)
+colnames(comp2_mm) = c("DKO","Control","WT")
+
+comp2_y <- voom(comp2_d0, comp2_mm, plot = F)
+comp2_fit <- lmFit(comp2_y, comp2_mm)
+
+cmat_PanCK <- makeContrasts(diff1= DKO-WT,
+                      diff2 = (DKO-Control)-(WT-Control),
+                      diff3 = (DKO-WT)/2 - Control,
+                      levels=comp2_fit)
+
+comp2_tmp <- contrasts.fit(comp2_fit, cmat_PanCK)
+comp2_tmp <- eBayes(comp2_tmp)
+PanCK_summary <- summary(decideTests(comp2_tmp, adjust.method="BH", p.value=0.05))
+PanCK_summary
+```
+Results are the same despite the differences in equations.
+
+```{r Refit eBayes for only DKO minus WT in panck}
+cmat_PanCK <- makeContrasts(diff= DKO-WT,
+                      levels=comp2_mm)
+
+comp2_tmp <- contrasts.fit(comp2_fit, cmat_PanCK)
+comp2_tmp <- eBayes(comp2_tmp)
+comp2_top.table <- topTable(comp2_tmp, sort.by = "P", n = Inf)
+# comp2_top.table
+```
+
+```{r Plot results for DKO vs WT with PanCK, warning = FALSE, fig.width = 10, fig.height = 7}
+library(EnhancedVolcano)
+## Plot volcano plots
+keyvals <- ifelse(
+  comp2_top.table$P.Value < 0.05, 
+  ifelse(comp2_top.table$logFC < -0.5, 'royalblue',
+         ifelse(comp2_top.table$logFC > 0.5, 'red',
+                'grey')), 'grey')
+                keyvals[is.na(keyvals)] <- 'grey'
+                  names(keyvals)[keyvals == 'red'] <- 'high'
+                  names(keyvals)[keyvals == 'grey'] <- 'mid'
+                  names(keyvals)[keyvals == 'royalblue'] <- 'low'
+                  
+EnhancedVolcano(comp2_top.table,
+              lab = rownames(comp2_top.table),
+              # ylim = c(0, 5),
+              x = 'logFC',
+              y = 'P.Value',
+              pCutoff = 0.05,
+              FCcutoff = 0.5,
+              labSize = 3,
+              colCustom = keyvals,
+              title = "DKO vs WT",
+              subtitle = "PanCK cells"
+              ) 
+```
+
+```{r Perform Pathway enrichment analysis with PanCK, fig.height=8}
+PanCK_peInput <- comp2_top.table$logFC
+names(PanCK_peInput) <- rownames(comp2_top.table)
+PanCK_peInput <-na.omit(PanCK_peInput )
+PanCK_peInput  = sort(PanCK_peInput , decreasing = TRUE)
+
+PanCK_gse <- gseGO(geneList=PanCK_peInput,
+                 ont ="ALL",
+                 keyType = "ALIAS",
+                 minGSSize = 3,
+                 nPermSimple = 10000,
+                 maxGSSize = 800,
+                 pvalueCutoff = 1,
+                 verbose = TRUE,
+                 OrgDb = org.Hs.eg.db,
+                 pAdjustMethod = "BH")
+
+dotplot(PanCK_gse, 
+        showCategory=10, 
+        split=".sign") + 
+  facet_grid(.~.sign)+
+  theme(axis.text.y =element_text(size=8))
+```
+
+```{r Simplify enrichment for PanCK GO GSEA}
+PanCK_gse_sim <- simplify(
+    PanCK_gse,
+    cutoff = 0.7,
+    by = "p.adjust",
+    select_fun = min,
+    measure = "Wang",
+    semData = NULL
+)
+```
+
+```{r Perform Pathway ernichment for KEGG with panck}
+ids<-bitr(names(PanCK_peInput), fromType = "SYMBOL", toType = "ENTREZID", OrgDb="org.Hs.eg.db")
+dedup_ids = ids[!duplicated(ids[c("SYMBOL")]),]
+df2 = comp2_top.table[rownames(comp2_top.table) %in% dedup_ids$SYMBOL,]
+df2$Y = dedup_ids$ENTREZID
+panck_gene_list <- df2$logFC   
+names(panck_gene_list) <- df2$Y
+panck_gene_list<-na.omit(panck_gene_list)
+panck_gene_list = sort(panck_gene_list, decreasing = TRUE)
+
+kegg_gsea_panck <- gseKEGG(geneList     = panck_gene_list,
+               organism     = "hsa",
+               minGSSize    = 3,
+               maxGSSize    = 800,
+               pvalueCutoff = 1,
+               pAdjustMethod = "BH",
+               keyType       = "ncbi-geneid")
+```
+
+```{r Plot KEGG pathways enrichment for PanCK}
+dotplot(kegg_gsea_panck, 
+        showCategory=10, 
+        split=".sign") + 
+  facet_grid(.~.sign)+
+  theme(axis.text.y =element_text(size=8))
+```
+
+```{r Reactome enrichment with PanCK}
+library(ReactomePA)
+reactome_GSEA_panck <- gsePathway(panck_gene_list,
+               minGSSize    = 3,
+               maxGSSize    = 800,
+               pvalueCutoff = 1,
+                pAdjustMethod = "BH", 
+                verbose = FALSE)
+```
+
+```{r Plot Reactome pathways enrichment in PanCK}
+dotplot(reactome_GSEA_panck, 
+        showCategory=10, 
+        split=".sign") + 
+  facet_grid(.~.sign)+
+  theme(axis.text.y =element_text(size=8))
+```
+
+```{r Write panck pathway enrichment data}
+PanCK_gse_df = as.data.frame(PanCK_gse_sim)
+React_panck_df = as.data.frame(reactome_GSEA_panck)
+React_panck_df$ONTOLOGY = "Reactome"
+KEGG_panck_df = as.data.frame(kegg_gsea_panck)
+KEGG_panck_df$ONTOLOGY = "KEGG"
+panck_gse_res = rbind(rbind(PanCK_gse_df, React_panck_df),KEGG_panck_df)
+write.csv(as.data.frame(panck_gse_res),"../res/final_results_281124/PanCK_PathwayEnrichment.csv")
+write.csv(comp2_top.table, "../res/final_results_281124/PanCK_DEGs.csv")
+```
+
+## Session information
+
+```{r Session information}
+sessionInfo()
+```
