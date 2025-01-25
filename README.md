@@ -1,4 +1,4 @@
-# Gene-Edited 'Universal’ Human Primary Cholangiocyte Organoids Evade Immune Rejection 
+# Immune and Mutational Profiling of Gene-Edited Low-Immunogenic Human Primary Cholangiocyte Organoids
 This readme provides a brief description of replicating an example of the analysis included in the [Petrus-Reurer et al. ()] for the section on spatial transcriptomics analysis.
 
 [![DOI]()
