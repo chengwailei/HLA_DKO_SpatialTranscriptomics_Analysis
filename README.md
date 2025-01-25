@@ -18,6 +18,7 @@ if (!require("BiocManager", quietly = TRUE))
 bio_pkgs <- c("NanoStringNCTools", "GeomxTools", "GeoMxWorkflows", "SpatialDecon", "standR", "limma", "ExperimentHub", "SpatialExperiment", "org.Hs.eg.db", "clusterProfiler")
 BiocManager::install(bio_pkgs)
 ```
+Typical installation time for all above packages: 45 mins
 
 # Running the example
 The included example R script reads the necessary intensity data out of the files in the `data` folder, producing the given output. To replicate the example you will need the following three files saved to your working directory:
@@ -34,6 +35,8 @@ It can be run from the RStudio directly from excuting the codes in the `DKOvsWT_
 - PanCK_PathwayEnrichment.csv: The pathway enrichment results based on the differential expresssed genes the DKO cholangiocytes and WT cholangiocytes.
 
 These results are also available in the `res` folder and can be used directly for the `Figure_Generation.Rmd` code to generate plots that are used in the paper.
+
+Typical run time for analysis: 1 hour
 
 # Directory structure
 ```
