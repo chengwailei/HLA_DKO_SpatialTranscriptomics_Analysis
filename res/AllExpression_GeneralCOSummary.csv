@@ -1,0 +1,565 @@
+"","Sample_ID","gene","value","Target","Group"
+"1","SAMEA8235350","CFTR",7.19892327034041,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"2","SAMEA8235350","GGT",5.82046375214452,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"3","SAMEA8235350","SOX9",7.32008443247117,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"4","SAMEA8235350","KRT7",6.79254028630106,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"5","SAMEA8235350","KRT19",9.01169995004767,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"6","SAMEA8235350","HNF1B",5.64804499331859,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"7","SAMEA8235351","CFTR",7.4851229458967,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"8","SAMEA8235351","GGT",5.76102987939317,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"9","SAMEA8235351","SOX9",7.5317922548317,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"10","SAMEA8235351","KRT7",6.74195624014221,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"11","SAMEA8235351","KRT19",8.49738107078555,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"12","SAMEA8235351","HNF1B",5.99608405533233,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"13","SAMEA8235352","CFTR",7.0688577846942,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"14","SAMEA8235352","GGT",6.21637741468476,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"15","SAMEA8235352","SOX9",7.67794216078628,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"16","SAMEA8235352","KRT7",8.34028591930212,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"17","SAMEA8235352","KRT19",10.2310069614299,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"18","SAMEA8235352","HNF1B",6.39350930347458,"atop(atop(textstyle('Prim'),textstyle('CBD')))","General
+CO"
+"19","SAMEA8235357","CFTR",6.53080171828778,NA,"General
+CO"
+"20","SAMEA8235357","GGT",6.63512415025006,NA,"General
+CO"
+"21","SAMEA8235357","SOX9",7.10801297352417,NA,"General
+CO"
+"22","SAMEA8235357","KRT7",8.57463812812411,NA,"General
+CO"
+"23","SAMEA8235357","KRT19",10.4789597066459,NA,"General
+CO"
+"24","SAMEA8235357","HNF1B",5.31889897044109,NA,"General
+CO"
+"25","SAMEA8235358","CFTR",7.09203281507301,NA,"General
+CO"
+"26","SAMEA8235358","GGT",6.22814205529066,NA,"General
+CO"
+"27","SAMEA8235358","SOX9",7.31051443979203,NA,"General
+CO"
+"28","SAMEA8235358","KRT7",7.93211780934261,NA,"General
+CO"
+"29","SAMEA8235358","KRT19",8.99558230855216,NA,"General
+CO"
+"30","SAMEA8235358","HNF1B",6.0160867686191,NA,"General
+CO"
+"31","SAMEA8235359","CFTR",6.52506901802534,NA,"General
+CO"
+"32","SAMEA8235359","GGT",6.29592506840702,NA,"General
+CO"
+"33","SAMEA8235359","SOX9",6.65728846656054,NA,"General
+CO"
+"34","SAMEA8235359","KRT7",7.53741948866143,NA,"General
+CO"
+"35","SAMEA8235359","KRT19",9.13508796244562,NA,"General
+CO"
+"36","SAMEA8235359","HNF1B",5.74378458324839,NA,"General
+CO"
+"37","SAMEA8235364","CFTR",8.02874927731781,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"38","SAMEA8235364","GGT",5.34631980270723,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"39","SAMEA8235364","SOX9",7.73936485407649,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"40","SAMEA8235364","KRT7",8.72830213415057,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"41","SAMEA8235364","KRT19",8.14195739051556,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"42","SAMEA8235364","HNF1B",6.00129954257499,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"43","SAMEA8235365","CFTR",7.85124957952123,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"44","SAMEA8235365","GGT",7.57397932126059,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"45","SAMEA8235365","SOX9",8.9322205603745,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"46","SAMEA8235365","KRT7",9.21180348165607,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"47","SAMEA8235365","KRT19",9.88185355065312,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"48","SAMEA8235365","HNF1B",6.89669888357138,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"49","SAMEA8235366","CFTR",7.87384263568872,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"50","SAMEA8235366","GGT",7.80709979052393,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"51","SAMEA8235366","SOX9",8.01998428442187,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"52","SAMEA8235366","KRT7",8.74290333183127,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"53","SAMEA8235366","KRT19",8.17288578946575,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"54","SAMEA8235366","HNF1B",7.35545926148022,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"55","SAMEA8235367","CFTR",7.88302908192893,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"56","SAMEA8235367","GGT",5.96128570525959,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"57","SAMEA8235367","SOX9",8.04766336504274,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"58","SAMEA8235367","KRT7",9.37616508555872,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"59","SAMEA8235367","KRT19",8.42358429322847,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"60","SAMEA8235367","HNF1B",6.8020326839579,"atop(atop(textstyle('Prim'),textstyle('IHD')))","General
+CO"
+"61","A02","KRT7",9.97541964106044,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"62","A02","KRT19",9.32166556893804,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"63","A02","GGT",7.14201493827285,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"64","A02","SOX9",8.61995592810112,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"65","A02","HNF1B",7.67445883523722,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"66","A02","CFTR",10.5055733284583,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"67","A03","KRT7",9.74439447994715,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"68","A03","KRT19",9.03270311299627,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"69","A03","GGT",6.73116162125214,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"70","A03","SOX9",8.55349798245354,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"71","A03","HNF1B",8.09401687626543,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"72","A03","CFTR",10.1482313044663,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"73","A04","KRT7",9.47689138049646,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"74","A04","KRT19",8.87924637618455,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"75","A04","GGT",7.49882552252942,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"76","A04","SOX9",8.46557372626697,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"77","A04","HNF1B",7.75086093254329,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"78","A04","CFTR",10.2568641823918,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"79","A05","KRT7",9.84233279719083,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"80","A05","KRT19",9.46192405722158,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"81","A05","GGT",7.02413235216298,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"82","A05","SOX9",8.90972691427263,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"83","A05","HNF1B",8.06702054170389,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"84","A05","CFTR",10.2285389660192,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"85","A06","KRT7",10.0069040573339,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"86","A06","KRT19",9.26654503326735,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"87","A06","GGT",6.99760828982531,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"88","A06","SOX9",8.67732948980823,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"89","A06","HNF1B",8.21309816334738,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"90","A06","CFTR",10.5216863010488,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"91","A07","KRT7",10.2723791409216,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"92","A07","KRT19",9.23727699421983,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"93","A07","GGT",6.90519752267366,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"94","A07","SOX9",8.87313211859938,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"95","A07","HNF1B",7.93378600593254,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"96","A07","CFTR",10.1319865139522,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"97","A08","KRT7",9.1784459642956,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"98","A08","KRT19",8.93113338328826,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"99","A08","GGT",6.34928621281972,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"100","A08","SOX9",8.53901086586009,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"101","A08","HNF1B",8.13280174658717,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"102","A08","CFTR",9.89606366998797,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"103","A09","KRT7",9.8543202360935,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"104","A09","KRT19",9.56658071533053,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"105","A09","GGT",7.04775086618726,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"106","A09","SOX9",8.51817134212527,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"107","A09","HNF1B",8.09222602836011,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"108","A09","CFTR",10.3337345861156,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"109","A10","KRT7",8.49215886253148,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"110","A10","KRT19",7.34849896412012,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"111","A10","GGT",6.00950411390618,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"112","A10","SOX9",7.34849896412012,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"113","A10","HNF1B",6.82907014223017,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"114","A10","CFTR",8.27984620740423,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"115","A11","KRT7",10.2343213181643,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"116","A11","KRT19",9.69065668283597,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"117","A11","GGT",7.61492896071945,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"118","A11","SOX9",8.65934838754276,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"119","A11","HNF1B",8.14837634533271,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"120","A11","CFTR",10.0225720377246,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"121","A12","KRT7",9.94163374293674,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"122","A12","KRT19",9.70312654081439,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"123","A12","GGT",6.82177829803008,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"124","A12","SOX9",8.80543051708855,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"125","A12","HNF1B",8.32466620462466,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"126","A12","CFTR",10.2859986766608,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"127","B01","KRT7",9.97679950833219,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"128","B01","KRT19",9.43316732296134,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"129","B01","GGT",7.21448350249652,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"130","B01","SOX9",8.69785667396099,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"131","B01","HNF1B",8.30379971323511,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"132","B01","CFTR",9.93626964359189,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"133","B02","KRT7",9.95149222465074,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"134","B02","KRT19",9.54379293981637,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"135","B02","GGT",7.35645638056619,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"136","B02","SOX9",8.51692479238236,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"137","B02","HNF1B",8.03906999618219,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"138","B02","CFTR",10.3805077895792,"atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))","General
+CO"
+"139","B03","KRT7",8.91863891682531,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"140","B03","KRT19",8.871285655302,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"141","B03","GGT",5.53603043334331,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"142","B03","SOX9",9.45673939684012,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"143","B03","HNF1B",7.42127847521145,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"144","B03","CFTR",9.2866916008741,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"145","B05","KRT7",9.06838198930778,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"146","B05","KRT19",9.24946142955546,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"147","B05","GGT",5.97751593589831,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"148","B05","SOX9",8.97541385999618,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"149","B05","HNF1B",7.0225708403713,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"150","B05","CFTR",9.49888435193397,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"151","B07","KRT7",8.79831794170261,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"152","B07","KRT19",9.05630129310015,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"153","B07","GGT",6.5029936023564,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"154","B07","SOX9",9.13297163577495,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"155","B07","HNF1B",7.21735888363785,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"156","B07","CFTR",8.99188919438747,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"157","B09","KRT7",7.97049411318444,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"158","B09","KRT19",8.31758335571733,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"159","B09","GGT",6.01708009995331,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"160","B09","SOX9",9.32538097658411,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"161","B09","HNF1B",7.51252094182825,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"162","B09","CFTR",9.26848635123412,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"163","B11","KRT7",9.29807522786646,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"164","B11","KRT19",8.95614771163966,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"165","B11","GGT",6.7343161005235,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"166","B11","SOX9",8.60267503672861,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"167","B11","HNF1B",7.12597647287754,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"168","B11","CFTR",9.49351328469438,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"169","C01","KRT7",9.2275374952715,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"170","C01","KRT19",9.41252162034601,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"171","C01","GGT",6.87847680709843,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"172","C01","SOX9",8.86480968188702,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"173","C01","HNF1B",7.91093920751917,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"174","C01","CFTR",9.53718846236473,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"175","C03","KRT7",8.47509647225486,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"176","C03","KRT19",8.86217889014935,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"177","C03","GGT",6.76066145138054,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"178","C03","SOX9",8.97112727647749,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"179","C03","HNF1B",7.09618157981888,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"180","C03","CFTR",8.60099088922164,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"181","C05","KRT7",7.93976039583817,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"182","C05","KRT19",8.33237358510978,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"183","C05","GGT",7.05091309526595,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"184","C05","SOX9",9.22371667184851,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"185","C05","HNF1B",7.14600801725087,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"186","C05","CFTR",9.26667215562265,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"187","C07","KRT7",9.10672624224475,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"188","C07","KRT19",9.44751081566213,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"189","C07","GGT",6.96945371526014,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"190","C07","SOX9",8.76087558990361,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"191","C07","HNF1B",6.96945371526014,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"192","C07","CFTR",8.94413984330779,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"193","C09","KRT7",9.21213736148768,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"194","C09","KRT19",9.49703258800262,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"195","C09","GGT",6.64989558305101,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"196","C09","SOX9",8.74441258645359,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"197","C09","HNF1B",7.17626918185961,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"198","C09","CFTR",9.14128556384638,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"199","C11","KRT7",8.54666971651249,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"200","C11","KRT19",9.10203323226582,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"201","C11","GGT",7.14064731946101,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"202","C11","SOX9",8.70019106753979,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"203","C11","HNF1B",7.17915385688073,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"204","C11","CFTR",8.80240001355538,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"205","D01","KRT7",8.13134164822429,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"206","D01","KRT19",8.21816808975493,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"207","D01","GGT",7.0023182233002,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"208","D01","SOX9",9.21306676046323,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"209","D01","HNF1B",7.65912991586107,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"210","D01","CFTR",9.45572704500356,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"211","E07","KRT7",9.22154360884259,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"212","E07","KRT19",8.94453901006186,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"213","E07","GGT",6.607071846464,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"214","E07","SOX9",8.86184954249656,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"215","E07","HNF1B",7.65659382949138,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"216","E07","CFTR",9.44249587079857,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"217","E09","KRT7",8.59256401444885,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"218","E09","KRT19",8.94462558579753,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"219","E09","GGT",7.15138756379612,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"220","E09","SOX9",8.5145419368966,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"221","E09","HNF1B",7.7706309546089,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"222","E09","CFTR",9.46373718493058,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"223","E11","KRT7",8.99645075427742,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"224","E11","KRT19",8.50009934647147,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"225","E11","GGT",6.48360027541154,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"226","E11","SOX9",9.17198042221004,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"227","E11","HNF1B",7.7373166811118,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"228","E11","CFTR",9.06480116153871,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"229","F02","KRT7",9.10674714985008,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"230","F02","KRT19",9.06686282864466,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"231","F02","GGT",6.97026262678363,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"232","F02","SOX9",8.55434603228174,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"233","F02","HNF1B",7.91073714218573,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"234","F02","CFTR",9.22018252460165,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"235","F04","KRT7",8.91636167559136,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"236","F04","KRT19",9.50203806388046,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"237","F04","GGT",6.88593054018169,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"238","F04","SOX9",8.58498496303078,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"239","F04","HNF1B",8.13383187822545,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"240","F04","CFTR",9.61580297964935,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"241","F06","KRT7",8.80837604892427,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"242","F06","KRT19",8.86859921329716,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"243","F06","GGT",7.02025813249835,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"244","F06","SOX9",8.40949602210224,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"245","F06","HNF1B",6.947664919531,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"246","F06","CFTR",8.58727410568404,"atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))","General
+CO"
+"310","UDP0035","CFTR",3.94666550546788,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"610","UDP0035","GGT1",3.50466914403895,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"910","UDP0035","HNF1B",3.15571306977973,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"1110","UDP0035","KRT19",5.40082583442669,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"1210","UDP0035","KRT7",4.68111155929483,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"1910","UDP0035","SOX9",4.55019397958619,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"261","UDP0036","CFTR",4.40691167580965,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"291","UDP0036","GGT1",3.40918843697174,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"321","UDP0036","HNF1B",3.30659230949929,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"341","UDP0036","KRT19",5.36867371350709,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"351","UDP0036","KRT7",4.7039176231422,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"421","UDP0036","SOX9",4.51754018523809,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"491","UDP0037","CFTR",4.08549812148241,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"521","UDP0037","GGT1",3.6617382761517,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"551","UDP0037","HNF1B",3.13714811670839,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"571","UDP0037","KRT19",5.54952795919144,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"581","UDP0037","KRT7",4.85971366175109,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"651","UDP0037","SOX9",4.38631549590846,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"721","UDP0038","CFTR",4.02653746024543,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"751","UDP0038","GGT1",3.88847316922784,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"781","UDP0038","HNF1B",3.23129916595106,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"801","UDP0038","KRT19",5.40512275047231,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"811","UDP0038","KRT7",4.6350916947833,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"881","UDP0038","SOX9",4.47203492268945,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"951","UDP0039","CFTR",4.54608198405141,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"981","UDP0039","GGT1",3.730659421466,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"1011","UDP0039","HNF1B",2.81021462924972,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"1031","UDP0039","KRT19",5.32042123125706,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"1041","UDP0039","KRT7",4.64579422789528,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"1111","UDP0039","SOX9",4.54337233801165,"atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))","General
+CO"
+"1181","UDP0040","CFTR",4.62671590751143,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"1211","UDP0040","GGT1",3.57842739480542,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"1241","UDP0040","HNF1B",2.57738992453879,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"1261","UDP0040","KRT19",4.97600903104067,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"1271","UDP0040","KRT7",4.22014049568539,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
+"1341","UDP0040","SOX9",4.50571029273691,"atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))","General
+CO"
