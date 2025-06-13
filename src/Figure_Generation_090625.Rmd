@@ -1,0 +1,758 @@
+---
+title: "Figure_Generation"
+author: "Winnie Lei"
+date: "2025-06-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Load packages}
+setwd(".")
+library(knitr)
+library(ggplot2)
+library(colorspace)
+library(tidyverse)
+library(ggpubr)
+library(ComplexHeatmap)
+library(circlize)
+library(clusterProfiler)
+library(enrichplot)
+library(org.Hs.eg.db)
+library(multienrichjam)
+library(ggh4x)
+library(pathview)
+```
+
+
+## 1. Load data 
+
+```{r Load CD45 deconvolution result}
+safeTME_result = read.csv("../res/final_results/CD45_Deconvolution_SafeTME_Counts.csv")
+ImmuneCensus_result = read.csv("../res/final_results/CD45_Deconvolution_ImmuneCensus_Counts.csv")
+```
+
+```{r Load CD45 DEG pathway enrichment results}
+CH_gse = read.csv("../res/final_results/CD45_PathwayEnrichment.csv")
+comp1_top.table = read.csv("../res/final_results/CD45_DEGs.csv")
+```
+
+```{r Load PanCK DEG pathway enrichment results}
+PanCK_gse = read.csv("../res/final_results/PanCK_PathwayEnrichment.csv")
+comp2_top.table = read.csv("../res/final_results/PanCK_DEGs.csv")
+```
+
+## 2. Plot deconvolution results
+
+SafeTME
+
+```{r Create new colour dictionary}
+cellPalette_merged = c("Others" = "white",
+                       "Monocytes" = "#09578D",
+                       "DCs" = "#BDBD20",
+                       "B cells" = "#94C794",
+                       "CD8 Naive" = "#FF7D02",
+                       "CD8 Central" = "#D6AEA0",
+                       "Tregs" = "#9266BA",
+                       "CD4 Naive" = "#726281",
+                       "CD4 Central" = "#E176C0", 
+                       "CD4/8 Effector" = "#D52627")
+```
+
+```{r Plot merged safeTME results, fig.width = 6, fig.height = 5}
+safeTME_res_merged_long = safeTME_result
+
+safeTME_res_merged_long[safeTME_res_merged_long$CellTypes == "DCs","CellTypes"] <- "Others"
+
+safeTME_res_merged_PD <- aggregate(safeTME_res_merged_long[c("Count")], 
+                      list(safeTME_res_merged_long$Condition,
+                           safeTME_res_merged_long$'CellTypes'), 
+                      mean)
+
+colnames(safeTME_res_merged_PD) <- c("Condition", "CellTypes", "Mean")
+
+safeTME_res_merged_PD$Class <- factor(safeTME_res_merged_PD$Condition, 
+                                              levels=c("DKO","WT","Matrigel"))
+
+ggplot(safeTME_res_merged_PD, 
+       aes(fill = CellTypes, 
+           y = Mean, 
+           x = Class)) + 
+    geom_bar(position = "fill", color = "black",
+             stat = "identity") +
+    scale_fill_manual(values = cellPalette_merged) +
+    theme(plot.margin = margin(0, 0, 0, 0, "pt"),
+          legend.justification = "top") +
+  guides(fill=guide_legend(title = "Cell types")) +
+  ylab("Average cell proportional abundance") + 
+  xlab("Sample class")+theme_bw() + scale_y_continuous(expand = c(0, 0))
+```
+```{r Plot SafeTME results as average cell abundance}
+ggplot(safeTME_res_merged_PD, 
+       aes(fill = CellTypes, 
+           y = Mean, 
+           x = Class)) + 
+    geom_bar(position = "stack", color = "black",
+             stat = "identity") +
+    scale_fill_manual(values = cellPalette_merged) +
+    theme(plot.margin = margin(0, 0, 0, 0, "pt"),
+          legend.justification = "top") +
+  guides(fill=guide_legend(title = "Cell types")) +
+  ylab("Average cell abundance") + 
+  xlab("Sample class")+theme_bw() + scale_y_continuous(expand = c(0, 0))
+```
+
+
+```{r Boxplot and statistical analysis for safeTME, fig.height = 5, fig.width = 8, warning = FALSE}
+ct_plt <- list()
+count <- 1
+
+class_dict <- c("Non_Humanised WT" = "#ff7f00",
+                  "Matrigel" = "#33a02c",
+                  "DKO" = "#e41a1c",
+                  "WT" = "#377eb8")
+
+safeTME_res_merged_long_df = safeTME_res_merged_long
+safeTME_res_merged_long_df = safeTME_res_merged_long_df[!safeTME_res_merged_long_df$Condition == "Matrigel",]
+
+ggplot(safeTME_res_merged_long_df, aes(x = CellTypes, y = Count)) + 
+      geom_violin(aes(fill = CellTypes)) +
+     geom_jitter(shape=16, position=position_jitter(0.05), size = 1, colour = "black") +
+      facet_wrap(.~ Condition, ncol = 1)+
+    scale_fill_manual(values = cellPalette_merged) + 
+    theme_bw()+ scale_y_continuous(expand = c(0, 0)) +
+  theme(legend.position="none")
+  
+```
+
+```{r Plot all CD45 merged safeTME deconvolution results, fig.width = 12, fig.height = 3}
+ggplot(as.data.frame(safeTME_res_merged_long), 
+       aes(fill = CellTypes, 
+           y = Count, 
+           x = Region)) + 
+    geom_bar(position = "fill", color = "black",
+             stat = "identity") +
+    scale_fill_manual(values = cellPalette_merged) +
+  guides(fill=guide_legend(title = "Cell types")) + 
+  ylab("Cell abundance") + 
+  xlab("Sample class") +
+  theme_bw() + 
+  facet_grid(.~ Condition, scales = "free", space = "free") +
+  theme(axis.title.x=element_blank(), 
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+          legend.justification = "top")+ 
+  scale_y_continuous(expand = c(0, 0))
+```
+
+```{r Plot as bubble plot, fig.width = 15, fig.height = 4, warning = FALSE}
+safeTME_n_res = safeTME_res_merged_long[safeTME_res_merged_long$CellTypes!="Others",] 
+safeTME_n_res[safeTME_n_res$Count>0,] %>% 
+  ggplot(aes(x = Region, 
+             y = CellTypes, 
+             color = CellTypes, 
+             size = Count)) + 
+  geom_point(aes(fill = CellTypes), colour = "black" ,pch=21) +
+  scale_fill_manual(values = cellPalette_merged) + 
+  theme_bw() +
+  theme(axis.line  = element_blank(),
+        axis.text.x = element_text(angle=90, hjust=1, vjust = 0.3),
+        strip.placement = "outside",
+        strip.background = element_rect(colour="black", fill="white")) +
+  scale_size(range = c(1,9.5)) +
+
+  ylab('') +
+  xlab('') +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text( size = 10),
+        axis.text.x = element_text( size = 10),
+        plot.margin = unit(c(0, 0, 0, 0), "cm")) + 
+  facet_grid2(.~Condition,
+             scales = "free_x",
+             space= "free_x",
+              switch="x") 
+  
+```
+
+## 3. Plot CD45 pathway enrichment results
+
+```{r Create CH_peInput}
+## Create CH_peInput
+CH_peInput <- comp1_top.table$logFC
+names(CH_peInput) <- comp1_top.table$X
+CH_peInput <-na.omit(CH_peInput )
+CH_peInput  = sort(CH_peInput , decreasing = TRUE)
+```
+
+```{r Plot T-cell/ B cell, fig.width = 9, fig.height = 6}
+Tcell_gse = CH_gse[grepl("T cell", CH_gse$Description),]
+Tcell_gse = Tcell_gse[!grepl("tumor", Tcell_gse$Description),]
+# Tcell <- cnetplot(Tcell_gse,
+#          categorySize="pvalue",
+#          foldChange = CH_peInput,
+#          showCategory = 11,
+#          cex.params = list(category_node = 1.5,
+#                            gene_node = 1,
+#                            category_label = 0.6,
+#                            gene_label = 0.5))
+
+
+Bcell_gse = CH_gse[grepl("B cell", CH_gse$Description),]
+Bcell_gse = Bcell_gse[!grepl("tumor", Bcell_gse$Description),]
+# Bcell <- cnetplot(Bcell_gse,
+#          categorySize="pvalue",
+#          foldChange=CH_peInput,
+#          showCategory = 10,
+#          cex.params = list(category_node = 1.5,
+#                            gene_node = 1,
+#                            category_label = 0.6,
+#                            gene_label = 0.5))
+# cowplot::plot_grid(Tcell, Bcell, ncol = 2)
+```
+
+```{r Generate circos plot for T cell pathways}
+Tcell_gse_df = Tcell_gse
+Tcell_gse_df = Tcell_gse_df[c("Description","NES","core_enrichment")]
+Tcell_gse_df = Tcell_gse_df %>%
+  separate_longer_delim(core_enrichment, delim = "/")
+Tcell_gse_df = merge(Tcell_gse_df,
+                     comp1_top.table[c("logFC")],
+                     all.x = TRUE,
+                     by.x = "core_enrichment",
+                     by.y = 0)
+Tcell_chord_df = Tcell_gse_df[c("Description","core_enrichment")]
+colnames(Tcell_chord_df) = c("from","to")
+Tcell_chord_df$value = 1
+
+circos.clear()
+circos.par(start.degree = 90)
+
+
+circos.par(gap.after=c(rep(1,length(unique(Tcell_chord_df$from))-1),6,rep(1,length(unique(Tcell_chord_df$to))-1),6))
+chordDiagram(Tcell_chord_df,
+             annotationTrack = "grid",
+             directional = 1,
+         preAllocateTracks = list(track.height = 0.3)
+         )
+circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
+    xlim = get.cell.meta.data("xlim")
+    ylim = get.cell.meta.data("ylim")
+    sector.name = get.cell.meta.data("sector.index")
+    circos.text(CELL_META$xcenter,
+                ylim[1] + cm_h(1),
+                sector.name,
+                cex = 0.5,
+            facing = "clockwise",
+            niceFacing = TRUE,
+            adj = c(0, 0.2))
+}, bg.border = NA)
+
+Tcell_gse_length = rbind(as.data.frame(table(Tcell_gse_df$core_enrichment)),
+as.data.frame(table(Tcell_gse_df$Description)))
+
+values1 = unique(Tcell_gse_df[order(Tcell_gse_df$core_enrichment),c("core_enrichment","logFC")])
+values2 = unique(Tcell_gse_df[order(Tcell_gse_df$core_enrichment),c("Description","NES")])
+colnames(values1) <- c("chr","value1")
+colnames(values2) <- c("chr","value1")
+values = rbind(values1, values2)
+values = merge(values,
+               Tcell_gse_length,
+               all.x = TRUE,
+               by.x = "chr",
+               by.y = "Var1")
+values$start = 0
+colnames(values)[3] = "end"
+values = values[c("chr","start","end","value1")]
+
+col_fun1 = colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
+circos.genomicHeatmap(values,
+                      col_fun1,
+                      side = "outside",
+                      border = "white",
+                      line_col = NULL,
+                      heatmap_height = 0.04
+                      )
+lgd_links = Legend(at = c(-2, -1, 0, 1, 2), col_fun = col_fun1,
+    title_position = "topleft", title = "NES/ LogFC")
+draw(lgd_links, x = unit(4, "mm"), y = unit(4, "mm"), just = c("left", "bottom"))
+```
+
+```{r Generate circos plot for B cell pathways}
+Bcell_gse_df = Bcell_gse
+Bcell_gse_df = Bcell_gse_df[c("Description","NES","core_enrichment")]
+Bcell_gse_df = Bcell_gse_df %>%
+  separate_longer_delim(core_enrichment, delim = "/")
+Bcell_gse_df = merge(Bcell_gse_df,
+                     comp1_top.table[c("logFC")],
+                     all.x = TRUE,
+                     by.x = "core_enrichment",
+                     by.y = 0)
+Bcell_chord_df = Bcell_gse_df[c("Description","core_enrichment")]
+colnames(Bcell_chord_df) = c("from","to")
+Bcell_chord_df$value = 1
+
+circos.clear()
+circos.par(start.degree = 90)
+
+circos.par(gap.after=c(rep(1,length(unique(Bcell_chord_df$from))-1),6,rep(1,length(unique(Bcell_chord_df$to))-1),6))
+
+chordDiagram(Bcell_chord_df,
+             annotationTrack = "grid",
+             directional = 1,
+         preAllocateTracks = list(track.height = 0.3)
+         )
+circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
+    xlim = get.cell.meta.data("xlim")
+    ylim = get.cell.meta.data("ylim")
+    sector.name = get.cell.meta.data("sector.index")
+    circos.text(CELL_META$xcenter,
+                ylim[1] + cm_h(1),
+                sector.name,
+                cex = 0.5,
+            facing = "clockwise",
+            niceFacing = TRUE,
+            adj = c(0, 0.2))
+}, bg.border = NA)
+
+Bcell_gse_length = rbind(as.data.frame(table(Bcell_gse_df$core_enrichment)),
+as.data.frame(table(Bcell_gse_df$Description)))
+
+values1 = unique(Bcell_gse_df[order(Bcell_gse_df$core_enrichment),c("core_enrichment","logFC")])
+values2 = unique(Bcell_gse_df[order(Bcell_gse_df$core_enrichment),c("Description","NES")])
+colnames(values1) <- c("chr","value1")
+colnames(values2) <- c("chr","value1")
+values = rbind(values1, values2)
+values = merge(values,
+               Bcell_gse_length,
+               all.x = TRUE,
+               by.x = "chr",
+               by.y = "Var1")
+values$start = 0
+colnames(values)[3] = "end"
+values = values[c("chr","start","end","value1")]
+
+col_fun1 = colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
+circos.genomicHeatmap(values,
+                      col_fun1,
+                      side = "outside",
+                      border = "white",
+                      line_col = NULL,
+                      heatmap_height = 0.04
+                      )
+lgd_links = Legend(at = c(-2, -1, 0, 1, 2), col_fun = col_fun1,
+    title_position = "topleft", title = "NES/ LogFC")
+draw(lgd_links, x = unit(4, "mm"), y = unit(4, "mm"), just = c("left", "bottom"))
+```
+
+
+```{r Plot CD45 key pathway enrichment}
+df = as.data.frame(CH_gse)
+df = df[grepl("immune",df$Description) | grepl("T cell",df$Description)| grepl("MHC",df$Description)| grepl("B cell",df$Description), ]
+df = df[!grepl("tumor", df$Description),]
+
+df$Description = stringr::str_wrap(df$Description, width = 60)
+
+df$Group =  ifelse(grepl("T cell",df$Description), "T cell",
+                   ifelse(grepl("B cell",df$Description), "B cell", 
+                   ifelse(grepl("MHC",df$Description),"MHC related","Immune")))
+
+
+df %>% 
+  ggplot(aes(x = NES, 
+             y = Description, 
+             color = enrichmentScore, 
+             size = -log(p.adjust))) + 
+  geom_point() +
+  theme_bw() +
+  scale_color_viridis_c(option = "inferno",
+                        limits = c(-5, 5),
+                        name = 'NES') +
+  theme(axis.line  = element_blank()) +
+  ylab('') +
+  xlab('') +
+  theme(
+        axis.text.y = element_text( size = 8),
+        axis.text.x = element_text( size = 8),
+        plot.margin = unit(c(0, 0, 0, 0), "cm")) +
+  facet_grid(Group ~ ., scales= "free", space = "free_y")
+
+```
+
+## 4. Plot PanCK pathway enrichment results
+
+```{r Plot stress, growth, death related pathways , fig.width = 10, fig.height = 10}
+df = PanCK_gse
+df = df[grepl("death",df$Description) |
+          grepl("apop",df$Description)|
+          # grepl("differentiation",df$Description)|
+          grepl("NF-kappa",df$Description)|
+          # grepl("heal",df$Description)|
+          # grepl("prolifer",df$Description)|
+          grepl("killing",df$Description)|
+          grepl("cytotoxicity",df$Description)|
+          grepl("cytokine",df$Description), ]
+df = df[!grepl("tumor", df$Description),]
+df = df[!grepl("T cell", df$Description),]
+df = df[!grepl("lymphocyte", df$Description),]
+df = df[!grepl("leukocyte", df$Description),]
+df = df[!grepl("mononuclear", df$Description),]
+df = df[!grepl("muscle", df$Description),]
+df = df[!grepl("oligodendrocyte", df$Description),]
+df = df[!grepl("myeloid", df$Description),]
+df = df[!grepl("B cell", df$Description),]
+df = df[!grepl("osteoblast", df$Description),]
+df = df[!grepl("insulin", df$Description),]
+df = df[!grepl("bone", df$Description),]
+df = df[!grepl("neutrophil", df$Description),]
+
+df$Description = stringr::str_wrap(df$Description, width = 60)
+
+df$Group =  ifelse(grepl("apop",df$Description), "Apoptosis",
+                   ifelse(grepl("death",df$Description), "Apoptosis",
+                   ifelse(grepl("prolif",df$Description), "Proliferation",
+                          ifelse(grepl("differentiation",df$Description), "Proliferation",
+                                 ifelse(grepl("heal",df$Description), "Proliferation",
+                                        ifelse(grepl("cytokine",df$Description), "Cytotoxic Killing",
+                                               ifelse(grepl("killing",df$Description), "Cytotoxic Killing",
+                                                      ifelse(grepl("cytotoxicity",df$Description), "Cytotoxic Killing",
+                   ifelse(grepl("stress",df$Description),"Stress","Stress")))))))))
+
+
+```
+
+```{r Plot PanCK top pathways}
+df = df[df$pvalue < 0.1,]
+df = df[order(-df$pvalue),]
+df$Description = factor(df$Description, levels=df$Description)
+ggplot(df,
+                            aes(x = -log10(pvalue),
+                                y = Description)) + 
+  geom_point(aes(size = setSize ,fill = NES), colour = "black" ,pch=21) +
+  ylab('Terms') +
+  xlab('-log10(p-value)') +
+  scale_fill_viridis_c(option = "inferno",
+                        limits = c(-3, 3),
+                        name = 'NES') +
+  theme_bw() +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text.y = element_text( size = 10),
+        axis.text.x = element_text( size = 10),
+        plot.margin = unit(c(0, 0, 0, 0), "cm"),
+        legend.position = "bottom") + 
+  
+  facet_grid2(ONTOLOGY~.,
+             scales = "free_y",
+             space= "free_y") +
+  scale_size_continuous(range = c(2,10))
+```
+```{r}
+df = PanCK_gse
+df = df[grepl("death",df$Description) |
+          grepl("apop",df$Description)|
+          grepl("Apop",df$Description)|
+          grepl("Death",df$Description)|
+          grepl("NF-kappa",df$Description)|
+          grepl("Cytok",df$Description)|
+          grepl("Killing",df$Description)|
+          grepl("killing",df$Description)|
+          grepl("cytotoxicity",df$Description)|
+          grepl("cytokine",df$Description), ]
+df = df[!grepl("tumor", df$Description),]
+df = df[!grepl("T cell", df$Description),]
+df = df[!grepl("lymphocyte", df$Description),]
+df = df[!grepl("leukocyte", df$Description),]
+df = df[!grepl("mononuclear", df$Description),]
+df = df[!grepl("muscle", df$Description),]
+df = df[!grepl("oligodendrocyte", df$Description),]
+df = df[!grepl("myeloid", df$Description),]
+df = df[!grepl("B cell", df$Description),]
+df = df[!grepl("osteoblast", df$Description),]
+df = df[!grepl("insulin", df$Description),]
+df = df[!grepl("bone", df$Description),]
+df = df[!grepl("neutrophil", df$Description),]
+
+df$Description = stringr::str_wrap(df$Description, width = 60)
+
+df$Group =  ifelse(grepl("pop",df$Description), "Apoptosis",
+                   ifelse(grepl("eath",df$Description), "Apoptosis",
+                   ifelse(grepl("prolif",df$Description), "Proliferation",
+                          ifelse(grepl("differentiation",df$Description), "Proliferation",
+                                 ifelse(grepl("heal",df$Description), "Proliferation",
+                                        ifelse(grepl("cytokine",df$Description), "Cytotoxic Killing",
+                                               ifelse(grepl("killing",df$Description), "Cytotoxic Killing",
+                                                      ifelse(grepl("cytotoxicity",df$Description), "Cytotoxic Killing",
+                   ifelse(grepl("stress",df$Description),"Stress","Stress")))))))))
+
+# PanCK_KeyPathway_BarPlot
+df = df[df$pvalue < 0.1,]
+df = df[order(-df$pvalue),]
+df$Description = factor(df$Description, levels=df$Description)
+ggplot(df,
+                            aes(x = -log10(pvalue),
+                                y = Description)) + 
+  geom_point(aes(size = setSize ,fill = NES), colour = "black" ,pch=21) +
+  ylab('Terms') +
+  xlab('-log10(p-value)') +
+  scale_fill_viridis_c(option = "inferno",
+                        limits = c(-3, 3),
+                        name = 'NES') +
+  theme_bw() +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text.y = element_text( size = 10),
+        axis.text.x = element_text( size = 10),
+        plot.margin = unit(c(0, 0, 0, 0), "cm"),
+        legend.position = "bottom") + 
+  
+  facet_grid2(ONTOLOGY~.,
+             scales = "free_y",
+             space= "free_y") +
+  scale_size_continuous(range = c(2,10))
+```
+### Reduce to key pathways
+
+```{r Plot stress, growth, death related pathways , fig.width = , fig.height = 4}
+df = PanCK_gse
+df = df[df$Description %in% c("response to cytokine stimulus",
+                              "cytokine production",
+                              "cytokine-mediated signaling pathway",
+                              "cell killing",
+                              "cytokine binding",
+                              "cytokine production involved in immune response",
+                              "natural killer cell mediated cytotoxicity",
+                              "cytokine receptor activity",
+                              "nature killer cell cytokine production",
+                              "I-kappaB kinase/NF-kappaB signaling",
+                              "regulation of I-kappaB kinase/NF-kappaB signaling"),]
+
+df$Description = stringr::str_wrap(df$Description, width = 60)
+
+df$Group =  ifelse(grepl("cytokine",df$Description), "Cytotoxic Killing",
+                                               ifelse(grepl("killing",df$Description), "Cytotoxic Killing",
+                                                      ifelse(grepl("cytotoxicity",df$Description), "Cytotoxic Killing","Stress")))
+
+# PanCK_KeyPathway_Dotplot
+df = df[df$p.adjust <= 0.1,]
+df = df[order(-df$p.adjust),]
+df$Description = factor(df$Description, levels=df$Description)
+
+df[df$p.adjust <= 0.1,] %>%
+  ggplot(aes(x =  -log(p.adjust),
+             y = Description,
+             color = NES,
+             size = setSize)
+         ) +
+  geom_point() +
+  theme_bw() +
+  scale_color_viridis_c(option = "inferno",
+                        limits = c(-3, 0),
+                        name = 'NES') +
+  theme(axis.line  = element_blank()) +
+  ylab('') +
+  xlab('') +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        axis.text.y = element_text( size = 9),
+        axis.text.x = element_text( size = 9),
+        plot.margin = unit(c(0, 0, 0, 0), "cm")) +
+  facet_grid(Group ~ ., scales= "free", space = "free_y") +
+  scale_x_continuous(limits = c(0,25)) +
+  scale_size(range=c(5,12))
+
+```
+
+
+## 5. Generate KEGG apoptosis 
+
+```{r Pathview apoptosis}
+panck_peInput <- comp2_top.table$logFC
+names(panck_peInput) <- comp2_top.table$X
+panck_peInput <-na.omit(panck_peInput )
+panck_peInput  = sort(panck_peInput , decreasing = TRUE)
+
+ids<-bitr(names(panck_peInput), fromType = "SYMBOL", toType = "ENTREZID", OrgDb="org.Hs.eg.db")
+dedup_ids = ids[!duplicated(ids[c("SYMBOL")]),]
+
+df2 = comp2_top.table[comp2_top.table$X %in% dedup_ids$SYMBOL,]
+df2$Y = dedup_ids$ENTREZID
+panck_gene_list <- df2$logFC   
+names(panck_gene_list) <- df2$Y
+panck_gene_list<-na.omit(panck_gene_list)
+panck_gene_list = sort(panck_gene_list, decreasing = TRUE)
+
+## Apoptosis 
+# pathview(gene.data=panck_gene_list, 
+#          pathway.id="hsa04210", 
+#          cex = 0.00001,
+#          species = "hsa",
+#          low = "green",
+#          mid = "yellow",
+#          high = "red")
+
+```
+
+## 5. Plot In Vitro Results
+
+```{r Read in in vitro results for heatmap}
+reduced_logTMM_n = read.csv("../res/final_results/InVitro_Expression.csv")
+  
+p <- ggplot(reduced_logTMM_n, aes(gene, Target, fill = value)) +
+         geom_tile(colour = "black")
+
+p + viridis::scale_fill_viridis(direction = 1,
+                                limits = c(0, 5.6),
+  option = "magma",
+  na.value = 'black') +
+  facet_grid(Sample_ID~., scales = "free", space = "free",switch = "y")+ 
+  labs(y=NULL, x=NULL, fill="log(TMM)") +
+  theme_bw() +
+  # scale_x_discrete(labels=parse(text=xo)) +
+  xlab("") + ylab("") +
+  theme(panel.background = element_rect(fill = "black"),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        panel.grid = element_line(color = "black"),
+        strip.background = element_rect(fill="white"),
+        legend.position = "top",
+        # axis.text.y = element_text(vjust = 0.7),
+        legend.box.spacing = unit(-0.5, "pt")
+        ) +
+  scale_x_discrete(
+    expand = expansion(mult = c(0,0)),
+    position = "top"
+  ) + scale_y_discrete(position = "right")
+```
+
+
+```{r Read and produce plot for z-score expression In Vitro}
+GeomSplitViolin <- ggproto("GeomSplitViolin", GeomViolin, 
+                           draw_group = function(self, data, ..., draw_quantiles = NULL) {
+  data <- transform(data, xminv = x - violinwidth * (x - xmin), xmaxv = x + violinwidth * (xmax - x))
+  grp <- data[1, "group"]
+  newdata <- plyr::arrange(transform(data, x = if (grp %% 2 == 1) xminv else xmaxv), if (grp %% 2 == 1) y else -y)
+  newdata <- rbind(newdata[1, ], newdata, newdata[nrow(newdata), ], newdata[1, ])
+  newdata[c(1, nrow(newdata) - 1, nrow(newdata)), "x"] <- round(newdata[1, "x"])
+
+  if (length(draw_quantiles) > 0 & !scales::zero_range(range(data$y))) {
+    stopifnot(all(draw_quantiles >= 0), all(draw_quantiles <=
+      1))
+    quantiles <- ggplot2:::create_quantile_segment_frame(data, draw_quantiles)
+    aesthetics <- data[rep(1, nrow(quantiles)), setdiff(names(data), c("x", "y")), drop = FALSE]
+    aesthetics$alpha <- rep(1, nrow(quantiles))
+    both <- cbind(quantiles, aesthetics)
+    quantile_grob <- GeomPath$draw_panel(both, ...)
+    ggplot2:::ggname("geom_split_violin", grid::grobTree(GeomPolygon$draw_panel(newdata, ...), quantile_grob))
+  }
+  else {
+    ggplot2:::ggname("geom_split_violin", GeomPolygon$draw_panel(newdata, ...))
+  }
+})
+
+geom_split_violin <- function(mapping = NULL, data = NULL, stat = "ydensity", position = "identity", ..., 
+                              draw_quantiles = NULL, trim = TRUE, scale = "area", na.rm = FALSE, 
+                              show.legend = NA, inherit.aes = TRUE) {
+  layer(data = data, mapping = mapping, stat = stat, geom = GeomSplitViolin, 
+        position = position, show.legend = show.legend, inherit.aes = inherit.aes, 
+        params = list(trim = trim, scale = scale, draw_quantiles = draw_quantiles, na.rm = na.rm, ...))
+}
+```
+
+
+```{r Generate grouped violin plot, fig.width = 3, fig.height = 4}
+reduced_logTMM_woGCO = read.csv("../res/final_results/InVitro_Zscore_Expression.csv")
+ggplot(reduced_logTMM_woGCO, aes(Group, value, fill = Target)) + 
+  geom_split_violin() +
+  geom_jitter(aes(colour = Target), 
+     position = position_jitterdodge(), alpha = 0.6) +
+  xlab("") + ylab("z-score") +
+  coord_flip() +
+  theme_bw() +
+  scale_fill_manual(values=c("PCO" = "#B9B9FF","ePCO" =  "#FEB4FF")) + 
+  theme(legend.position="bottom") +
+  scale_color_manual(values = c("PCO" = "purple",
+                                "ePCO" = "hotpink"))
+```
+
+```{r Generate dotplot of In vitro Z score}
+avg_reduced_logTMM_woGCO = reduced_logTMM_woGCO[c("Group","Target","value")] %>% 
+                          group_by(Group, Target) %>%
+                          summarise_all("mean")
+
+ggplot(avg_reduced_logTMM_woGCO,
+       aes(x =  Target,
+           y = Group,
+           color = value,
+           size = value)
+         ) +
+  geom_point() +
+  theme_bw() +
+  scale_color_viridis_c(option = "inferno",
+                        limits = c(0,2),
+                        name = 'Z-Score') +
+  theme(axis.line  = element_blank()) +
+  ylab('') +
+  xlab('') +
+  scale_size(range = c(5,12))
+```
+
+```{r Export InVitro Dotplot data}
+write.csv(avg_reduced_logTMM_woGCO, "InVitro_ZScore_Dotplot.csv")
+```
+
+## 6. Generate plots for in vivo to primary data comparisons
+
+Can be found in DKO_ExpressionProfile.Rmd file
+
+
+## 7. Final comparison across data
+
+```{r Barplot of all expression}
+general_co_data = read.csv("../res/final_results/AllExpression_GeneralCOSummary.csv")
+
+ggplot(general_co_data, aes( y = value, x = Target), fill = "#7D7D7D", color = "#7D7D7D") +
+  geom_bar(
+    position = "dodge", width = 0.8, stat = "summary", fun = "mean",
+    color = "#7D7D7D", fill = "#7D7D7D", linewidth = .8
+  ) +
+  geom_point(colour = "black", fill = "white",
+    alpha = 0.3
+  ) + 
+  stat_summary(fun.ymin = function(x) mean(x) - sd(x), 
+           fun.ymax = function(x) mean(x) + sd(x), position ='dodge', 
+           geom = 'errorbar', color = "black",
+            width = 0.2, linewidth = 0.8,  na.rm = TRUE) + 
+  theme_classic() +
+  theme(legend.position = "None") +
+  labs(y="Mean Expresion (log(TMM))", x=NULL, fill="#7D7D7D") +
+  theme(aspect.ratio = 5/4) +
+      stat_summary(aes(label=round(..y..,2)), fun.y=mean, geom="text", size=4,
+             vjust = -6,  na.rm = TRUE) +
+  scale_y_continuous(expand =  expansion(mult = c(0, 0), 
+                                         add = c(0, 1)),
+                     limits = c(0, 12)) +
+  scale_x_discrete(labels = parse(text = levels(general_co_data$Target))) 
+```
+
+Session information
+
+```{r Session Information}
+sessionInfo()
+```
+
+
+
+
+
+
+
+
+
+
+
+
