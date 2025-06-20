@@ -1,0 +1,681 @@
+---
+title: "InVitro_Analysis_230525"
+author: "Winnie Lei"
+date: "2025-05-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load library}
+setwd(".")
+library(edgeR)
+library(knitr)
+library(ggplot2)
+library(colorspace)
+library(ggh4x)
+library(ggpubr)
+library(rstatix)
+library(limma)
+library(ExperimentHub)
+library(ggrepel)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+```
+
+## Analysis of In Vitro RNAseq data
+- Differential expression analysis between WT and DKO cells
+- Expression of regional chlonagiocyte signature genes
+- Expression compared to primary samples
+- Expression compared to in vivo samples
+
+## 1. Preparation of data and environment
+
+```{r Read in RNAseq data}
+all_paths <-list.files(path = "../res/HTSeq_GeneCount/", pattern = "*.txt",full.names = TRUE)
+all_content <-lapply(all_paths, read.table,sep = "\t", encoding = "UTF-8")
+cell_count <- Reduce(function(x, y) merge(x, y, by = 'V1', all = TRUE), all_content)
+colnames(cell_count) = c("Gene",gsub("_counts.txt","",gsub("../res/HTSeq_GeneCount/","",all_paths)))
+cell_count = cell_count[-c(1:5),]
+rownames(cell_count) = cell_count$Gene
+cell_count$Gene = NULL
+cell_count
+```
+
+Read in sample data
+```{r Read in sample data}
+sample_data = read.csv("../data/Sample_MetaData.csv")
+sample_data
+```
+
+Calculate normalized data
+
+```{r Normalize RNAseq data}
+# dge <- DGEList(cell_count)
+# dge <- calcNormFactors(dge, method="TMM")
+# logCPM <- edgeR::cpm(dge, log=FALSE)
+# logTMM = log10(logCPM+1)
+library(DESeq2)
+dds <- DESeqDataSetFromMatrix(countData = cell_count,
+                              colData = sample_data,
+                              design = ~ Condition)
+dds <- estimateSizeFactors(dds)
+sizeFactors(dds)
+normalized_counts <- counts(dds, normalized=TRUE)
+logTMM = log10(normalized_counts+1)
+```
+
+## 2. Perform differential expression analysis
+
+```{r data preprocessing}
+d0 <- DGEList(cell_count)
+d0 <- calcNormFactors(d0)
+cutoff <- 1
+drop <- which(apply(edgeR::cpm(d0), 1, max) < cutoff)
+d <- d0[-drop,] 
+```
+
+```{r Define group}
+condition_dict = setNames(sample_data$Condition,sample_data$File_name)
+group = unname(condition_dict[colnames(d0)])
+group
+```
+
+```{r Voom transformation}
+mm <- model.matrix(~0 + group)
+y <- voom(d, mm, plot = F)
+```
+
+```{r Fit linear models in limma}
+fit <- lmFit(y, mm)
+contr <- makeContrasts(groupDKO - groupWT, levels = colnames(coef(fit)))
+tmp <- contrasts.fit(fit, contr)
+tmp <- eBayes(tmp)
+top.table <- topTable(tmp, sort.by = "P", n = Inf)
+head(top.table, 20)
+```
+
+Number of DE genes
+```{r Number of DE genes}
+length(which(top.table$adj.P.Val < 0.05))
+```
+
+```{r Write top table}
+top.table$Gene <- rownames(top.table)
+top.table <- top.table[,c("Gene", names(top.table)[1:6])]
+write.csv(top.table, 
+            file = "../res/DKO_WT_DEGs.csv", 
+            row.names = F,
+            quote = F)
+```
+
+```{r Add labels for differential expression}
+# add a column of NAs
+top.table$diffexpressed <- "NO"
+# if log2Foldchange > 1 and pvalue < 0.05, set as "UP" 
+top.table$diffexpressed[top.table$logFC >= 1.5 & top.table$P.Value < 0.01] <- "UP"
+# if log2Foldchange < -1 and pvalue < 0.05, set as "DOWN"
+top.table$diffexpressed[top.table$logFC <= -1.5 & top.table$P.Value  < 0.01] <- "DOWN"
+top.table$delabel <- NA
+top.table$delabel[top.table$diffexpressed != "NO"] <- rownames(top.table[top.table$diffexpressed != "NO",])
+top.table$delabel = ifelse(top.table$delabel=="B2M","B2M",ifelse(top.table$delabel=="RFX5","RFX5",NA))
+```
+
+```{r Visualize differenial expression results}
+ggplot(data=top.table, 
+       aes(x=logFC, y=-log10(P.Value), col=diffexpressed, label=delabel)) +
+   geom_point() + 
+  theme_minimal() +
+  geom_text_repel() +
+  scale_color_manual(values=c("blue", "grey", "red")) +
+  geom_vline(xintercept=c(-1.5, 1.5), col="red") +
+  geom_hline(yintercept=-log10(0.01), col="red")
+```
+
+Perform pathway enrichment analysis
+```{r Pathway enrichment analysis }
+DEG_Input <- top.table$logFC
+names(DEG_Input) <- rownames(top.table)
+DEG_Input <-na.omit(DEG_Input )
+DEG_Input  = sort(DEG_Input , decreasing = TRUE)
+
+GSEA_result <- gseGO(geneList=DEG_Input,
+                 ont ="ALL",
+                 keyType = "ALIAS",
+                 minGSSize = 3,
+                 nPermSimple = 10000,
+                 maxGSSize = 800,
+                 pvalueCutoff = 0.05,
+                 verbose = TRUE,
+                 OrgDb = org.Hs.eg.db,
+                 pAdjustMethod = "BH")
+
+write.csv(as.data.frame(GSEA_result), "../res/DKO_WT_DEGs_GSEA.csv")
+```
+
+Perform PCA on log(TMM) data
+
+```{r Perform PCA on in vitro data}
+library(factoextra)
+
+res.pca <- prcomp(t(logTMM), scale = FALSE)
+fviz_eig(res.pca)
+
+pca_res = res.pca$x
+
+sample = unname(setNames(sample_data$Sample,sample_data$File_name)[colnames(logTMM)])
+sample = as.factor(sample)
+
+## Change name
+group_n = ifelse(group == "WT","PCO","ePCO")
+group_n = factor(group_n,
+                 levels = c("PCO","ePCO"))
+
+## Change sample
+sample_n =  unname(setNames(c("Line 1","Line 2", "Line 3"),
+                            c("325","299","808"))[as.character(sample)])
+sample_n = factor(sample_n,
+                 levels = c("Line 1","Line 2", "Line 3"))
+
+pca_res %>% 
+  ggplot(aes(x=PC1, y=PC2, fill = sample_n, group = sample_n))+
+  geom_point(aes(fill=sample_n,
+                 col = sample_n,
+                 shape=group_n),
+             size=4,
+             stroke =1)+
+  ggforce::geom_mark_ellipse(aes(fill = sample_n))+
+  scale_shape_manual(values = c(21,22),
+                     labels =  group_n,
+                     name = parse(text = "atop(atop(textstyle('Samples'),textstyle(italic('in vitro'))))")) +
+  scale_fill_brewer(palette="Dark2",
+                    labels = levels(sample_n),
+                    name="")+
+  scale_colour_brewer(palette="Dark2",
+                    labels = levels(sample_n),
+                    name="")+
+  theme_bw() + 
+  theme(legend.text = element_text(vjust = 0.5),
+        legend.text.align = 0.5,
+        legend.title = element_text(vjust = -8),
+        legend.title.align = 0.5,
+        legend.spacing.y = unit(-0.3, "cm")) +
+  guides(
+    shape = guide_legend(order = 1)
+  )
+```
+
+## 3. Extract key genes from previous work
+
+### Extract genes of interest:
+
+Signature from email on 2025-03-20:
+
+-General cholangiocyte (CO): KRT-7, KRT-19, GGT, SOX9, HNF1B, CFTR 
+-Intrahepatic ducts (IHD): DCDC2, PKHD1, HES4, BICC1, JAG1, SOX4, TACSTD2, HES1 
+-Common Bile duct (CBD): TFF3, TFF1, TFF2, AQP5
+-Gallbladder (GB): FGF19, SLC15A1, MUC13, SOX17, SLC13A1
+
+```{r create gene list 1}
+CO_list_1 = c("KRT7", "KRT19", "GGT1", "SOX9", "HNF1B", "CFTR") # GGT1 instead GGT 
+IHD_list_1 = c("DCDC2", "PKHD1", "HES4", "BICC1", "JAG1", "SOX4", "TACSTD2", "HES1") 
+CBD_list_1 = c("TFF2", "TFF3", "TFF1","AQP5")
+GB_list_1 = c("FGF19", "SLC15A1", "MUC13", "SLC13A1", "SOX17")
+```
+
+Subset matrix 
+```{r Create matrix with key signature}
+# scaled_logTMM = scale(logTMM)
+reduced_logTMM = logTMM[rownames(logTMM) %in% c(CO_list_1,
+                                                IHD_list_1,
+                                                CBD_list_1,
+                                                GB_list_1),]
+reduced_logTMM = reshape::melt(data.table::data.table(reduced_logTMM, 
+                                                keep.rownames = TRUE) , 
+                         id.vars = c("rn"))
+colnames(reduced_logTMM) = c("gene","Sample_ID","value")
+
+# Assigning gene group
+reduced_logTMM$Group = ifelse(reduced_logTMM$gene %in% CO_list_1, "General\nCO",
+                                         ifelse(reduced_logTMM$gene %in% IHD_list_1, "IHD",
+                                                ifelse(reduced_logTMM$gene %in% CBD_list_1, "CBD","GB")))
+reduced_logTMM$Group = factor(reduced_logTMM$Group,
+                               levels = c("General\nCO", "IHD", "CBD", "GB"))
+
+# Assign condition
+reduced_logTMM$Target = factor( unname(condition_dict[reduced_logTMM$Sample_ID]),
+                                levels = c("WT","DKO"))
+
+```
+
+```{r Plot heatmap with general CO only, fig.width = 3, fig.height = 4.5}
+reduced_logTMM_n = reduced_logTMM
+reduced_logTMM_n$Sample_ID = as.character(unname(setNames(sample_data$Sample,sample_data$File_name)[reduced_logTMM_n$Sample_ID]))
+reduced_logTMM_n$Sample_ID = unname(setNames(c("Line 1","Line 2","Line 3"),
+                            c("325","299","808"))[reduced_logTMM_n$Sample_ID])
+reduced_logTMM_n$Target = ifelse(reduced_logTMM_n$Target == "WT", "PCO", "ePCO")
+xo = rep(c("atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))",
+             "atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))"),3)
+
+reduced_logTMM_n = reduced_logTMM_n[reduced_logTMM_n$Group == "General\nCO",]
+  
+p <- ggplot(reduced_logTMM_n, aes(gene, Target, fill = value)) +
+         geom_tile(colour = "black")
+
+p + viridis::scale_fill_viridis(direction = 1,
+                                limits = c(0, 5.6),
+  option = "magma",
+  na.value = 'black') +
+  facet_grid(Sample_ID~., scales = "free", space = "free",switch = "y")+ 
+  labs(y=NULL, x=NULL, fill="log(TMM)") +
+  theme_bw() +
+  # scale_x_discrete(labels=parse(text=xo)) +
+  xlab("") + ylab("") +
+  theme(panel.background = element_rect(fill = "black"),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        panel.grid = element_line(color = "black"),
+        strip.background = element_rect(fill="white"),
+        legend.position = "top",
+        # axis.text.y = element_text(vjust = 0.7),
+        legend.box.spacing = unit(-0.5, "pt")
+        ) +
+  scale_x_discrete(
+    expand = expansion(mult = c(0,0)),
+    position = "top"
+  ) + scale_y_discrete(position = "right")
+```
+
+```{r Calculate correlation of all data}
+res = cor(logTMM)
+
+n_labels = c("atop(atop(textstyle('PCO'),atop(textstyle('Line 1'))))",
+             "atop(atop(textstyle('ePCO'),atop(textstyle('Line 1'))))",
+             "atop(atop(textstyle('PCO'),atop(textstyle('Line 2'))))",
+             "atop(atop(textstyle('ePCO'),atop(textstyle('Line 2'))))",
+             "atop(atop(textstyle('PCO'),atop(textstyle('Line 3'))))",
+             "atop(atop(textstyle('ePCO'),atop(textstyle('Line 3'))))")
+
+
+ggcorrplot::ggcorrplot(res, hc.order = FALSE,
+   outline.color = "black",
+   ggtheme = ggplot2::theme_bw,
+   colors = RColorBrewer::brewer.pal(n = 9, name = "RdBu")[c(9,5,1)],
+   lab = TRUE,lab_col = "#FFF6F6",
+   legend.title = "Expression\nCorrelations") +
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.75, hjust = 0.5, size = 9),
+        axis.text.y = element_text(vjust = 0.75, size = 9)) +
+  scale_x_discrete(labels= parse(text = (n_labels))) +
+  scale_y_discrete(labels= parse(text = (n_labels))) + 
+  scale_fill_gradient2(limit=c(0,1),
+                        low = RColorBrewer::brewer.pal(n = 9, name = "YlOrRd")[1],
+                        mid = RColorBrewer::brewer.pal(n = 9, name = "YlOrRd")[3],
+                        midpoint = 0.5,
+                        high = RColorBrewer::brewer.pal(n = 9, name = "YlOrRd")[9],
+                       name = "Pearson\nCorrelation")
+```
+
+```{r Function to generate split violin}
+GeomSplitViolin <- ggproto("GeomSplitViolin", GeomViolin, 
+                           draw_group = function(self, data, ..., draw_quantiles = NULL) {
+  data <- transform(data, xminv = x - violinwidth * (x - xmin), xmaxv = x + violinwidth * (xmax - x))
+  grp <- data[1, "group"]
+  newdata <- plyr::arrange(transform(data, x = if (grp %% 2 == 1) xminv else xmaxv), if (grp %% 2 == 1) y else -y)
+  newdata <- rbind(newdata[1, ], newdata, newdata[nrow(newdata), ], newdata[1, ])
+  newdata[c(1, nrow(newdata) - 1, nrow(newdata)), "x"] <- round(newdata[1, "x"])
+
+  if (length(draw_quantiles) > 0 & !scales::zero_range(range(data$y))) {
+    stopifnot(all(draw_quantiles >= 0), all(draw_quantiles <=
+      1))
+    quantiles <- ggplot2:::create_quantile_segment_frame(data, draw_quantiles)
+    aesthetics <- data[rep(1, nrow(quantiles)), setdiff(names(data), c("x", "y")), drop = FALSE]
+    aesthetics$alpha <- rep(1, nrow(quantiles))
+    both <- cbind(quantiles, aesthetics)
+    quantile_grob <- GeomPath$draw_panel(both, ...)
+    ggplot2:::ggname("geom_split_violin", grid::grobTree(GeomPolygon$draw_panel(newdata, ...), quantile_grob))
+  }
+  else {
+    ggplot2:::ggname("geom_split_violin", GeomPolygon$draw_panel(newdata, ...))
+  }
+})
+
+geom_split_violin <- function(mapping = NULL, data = NULL, stat = "ydensity", position = "identity", ..., 
+                              draw_quantiles = NULL, trim = TRUE, scale = "area", na.rm = FALSE, 
+                              show.legend = NA, inherit.aes = TRUE) {
+  layer(data = data, mapping = mapping, stat = stat, geom = GeomSplitViolin, 
+        position = position, show.legend = show.legend, inherit.aes = inherit.aes, 
+        params = list(trim = trim, scale = scale, draw_quantiles = draw_quantiles, na.rm = na.rm, ...))
+}
+```
+
+
+```{r Generate grouped violin plot, fig.width = 3, fig.height = 4}
+reduced_scaled_logTMM = scale(logTMM)
+reduced_scaled_logTMM = reduced_scaled_logTMM[rownames(reduced_scaled_logTMM) %in% c(CO_list_1,
+                                                IHD_list_1,
+                                                CBD_list_1,
+                                                GB_list_1),]
+reduced_scaled_logTMM = reshape::melt(data.table::data.table(reduced_scaled_logTMM, 
+                                                keep.rownames = TRUE) , 
+                         id.vars = c("rn"))
+colnames(reduced_scaled_logTMM) = c("gene","Sample_ID","value")
+
+# Assigning gene group
+reduced_scaled_logTMM$Group = ifelse(reduced_scaled_logTMM$gene %in% CO_list_1, "General\nCO",
+                                         ifelse(reduced_scaled_logTMM$gene %in% IHD_list_1, "IHD",
+                                                ifelse(reduced_scaled_logTMM$gene %in% CBD_list_1, "CBD","GB")))
+reduced_scaled_logTMM$Group = factor(reduced_scaled_logTMM$Group,
+                               levels = c("General\nCO", "IHD", "CBD", "GB"))
+
+# Assign condition
+reduced_scaled_logTMM$Target = factor( unname(condition_dict[reduced_scaled_logTMM$Sample_ID]),
+                                levels = c("WT","DKO"))
+
+reduced_logTMM_woGCO = reduced_scaled_logTMM[!reduced_scaled_logTMM$Group== "General\nCO",]
+reduced_logTMM_woGCO$Target = ifelse(reduced_logTMM_woGCO$Target == "WT", "PCO","ePCO")
+ggplot(reduced_logTMM_woGCO, aes(Group, value, fill = Target)) + 
+  geom_split_violin() +
+  xlab("") + ylab("z-score") +
+  coord_flip() +
+  theme_bw() +
+  scale_fill_manual(values=c("PCO" = "#B9B9FF","ePCO" =  "#FEB4FF")) + 
+  theme(legend.position="bottom")
+  
+```
+
+```{r Generate sample-wise dot plot, fig.width = 3.2, fig.height = 4}
+reduced_logTMM_woGCO_n = reduced_logTMM_woGCO
+reduced_logTMM_woGCO_n$Sample_ID = as.character(unname(setNames(sample_data$Sample,sample_data$File_name)[reduced_logTMM_woGCO_n$Sample_ID]))
+reduced_logTMM_woGCO_n$Sample_ID = unname(setNames(c("Line 1","Line 2","Line 3"),
+                            c("325","299","808"))[reduced_logTMM_woGCO_n$Sample_ID])
+reduced_logTMM_woGCO_n = as.data.frame(reduced_logTMM_woGCO_n %>%
+   group_by(Group, Sample_ID, Target) %>% 
+   dplyr::summarize_at(vars("value"), mean))
+
+reduced_logTMM_woGCO_n$value = scale(reduced_logTMM_woGCO_n$value)
+
+ggplot(reduced_logTMM_woGCO_n,
+       aes(x =  Group,
+           y = Target,
+           color = value,
+           size = value)
+         ) +
+  facet_grid(Sample_ID~., scales = "free", space = "free",switch = "y") + 
+  geom_point() +
+  theme_bw() +
+  scale_color_viridis_c(option = "magma",
+                        limits = c(-2.5,2.5),
+                        name = 'z-score',
+                        breaks = c(-2.5,0,2.5)) +
+  ylab('') +
+  xlab('') +
+  scale_size(
+    range = c(0,12),
+             name = "z-score",
+  limits = c(-2.5,2.5),
+  breaks = c(-2.5,0,2.5)
+  )+
+  scale_y_discrete(labels = ggplot2:::parse_safe) +
+  theme(legend.direction = "vertical", 
+        legend.box = "vertical",
+        panel.grid.major = element_blank())
+```
+
+## 5. Analyse together with Spatial Data
+
+Plot heatmap with primary cell data
+```{r Heatmap with primary cell}
+# Combine data together
+scaled_logTMM = scale(logTMM)
+reduced_logTMM = scaled_logTMM[rownames(scaled_logTMM) %in% c(CO_list_1,
+                                                IHD_list_1,
+                                                CBD_list_1,
+                                                GB_list_1),]
+reduced_logTMM = reshape::melt(data.table::data.table(reduced_logTMM, 
+                                                keep.rownames = TRUE) , 
+                         id.vars = c("rn"))
+colnames(reduced_logTMM) = c("gene","Sample_ID","value")
+
+# Assigning gene group
+reduced_logTMM$Group = ifelse(reduced_logTMM$gene %in% CO_list_1, "General\nCO",
+                                         ifelse(reduced_logTMM$gene %in% IHD_list_1, "IHD",
+                                                ifelse(reduced_logTMM$gene %in% CBD_list_1, "CBD","GB")))
+reduced_logTMM$Group = factor(reduced_logTMM$Group,
+                               levels = c("General\nCO", "IHD", "CBD", "GB"))
+
+# Assign condition
+reduced_logTMM$Target = factor( unname(condition_dict[reduced_logTMM$Sample_ID]),
+                                levels = c("WT","DKO"))
+
+scaled_reduced_logTMM = reduced_logTMM
+```
+
+```{r}
+PlateA = readRDS("../../DKO_Analysis/src/PlateA_GeoMx.rds")
+```
+
+Get relevant dataset
+-WT non-humanised: mouse 715TL right
+-DKO humanised: mouse 709 NM left and/or 936 NM left; should we stick to one or should we average the expression of all panCK DKO so also including 715 TL left? 
+
+```{r}
+PlateA$sampleData$Plate = "PlateA"
+all_Plate_Sample = PlateA$sampleData
+all_Plate_Sample = cbind(SegmentDisplayName = rownames(all_Plate_Sample), 
+                         all_Plate_Sample)
+colnames(all_Plate_Sample)[4] = "SlideName"
+colnames(all_Plate_Sample)[c(12,13)] = c("ROICoordinateX", "ROICoordinateY")
+all_Plate_Sample[all_Plate_Sample$Segment == "panCK","Segment"] = "PanCK"
+all_Plate_Sample
+```
+
+```{r Get key samples}
+Key_Plate_Sample = all_Plate_Sample[(all_Plate_Sample$SlideName == "715 TL right 31")|
+                                      (all_Plate_Sample$SlideName == "709 NM left 111")|
+                                      (all_Plate_Sample$SlideName == "936 NM left 57"),]
+Key_Plate_Sample = Key_Plate_Sample[Key_Plate_Sample$Segment == "PanCK",]
+Key_Plate_Sample
+```
+```{r}
+Key_annotation = PlateA$annotationData
+Key_annotation = cbind(TargetName = rownames(Key_annotation), 
+                             Key_annotation)
+
+Key_Sample_Count = PlateA$data[,rownames(Key_Plate_Sample)]
+Key_Sample_Count = cbind(TargetName = rownames(Key_Sample_Count), 
+                        as.data.frame(Key_Sample_Count))
+
+key_spe <- standR::readGeoMx(Key_Sample_Count, 
+                         Key_Plate_Sample, 
+                         featureAnnoFile = Key_annotation,
+                         rmNegProbe = FALSE
+                         )
+key_spe <- standR::geomxNorm(
+  key_spe,
+  method = "TMM", 
+  log = TRUE)
+
+DKO_data = assay(key_spe,"logcounts")
+DKO_data = as.data.frame(DKO_data)
+# DKO_data = as.data.frame(scale(DKO_data))
+```
+
+```{r Subset DKO data with key genes}
+keygenes_1 = c(CO_list_1,IHD_list_1,CBD_list_1,GB_list_1)
+keygenes_dko_1 = DKO_data[keygenes_1,]
+dim(keygenes_dko_1)
+```
+```{r Generate heatmap}
+keygenes_dko_df_1 = reshape::melt(data.table::data.table(keygenes_dko_1, keep.rownames = TRUE) , id.vars = c("rn"))
+colnames(keygenes_dko_df_1)[1] = "gene"
+keygenes_dko_df_1 = merge(keygenes_dko_df_1,
+                     Key_Plate_Sample[c("Scan Name", "Target", "Sample_ID")],
+                     by.x = "variable",
+                     by.y = 0,
+                     all.x = TRUE)
+keygenes_dko_df_1$Sample_ID = sub('.+-(.+)', '\\1', keygenes_dko_df_1$Sample_ID)
+keygenes_dko_df_1 = keygenes_dko_df_1[complete.cases(keygenes_dko_df_1), ]
+keygenes_dko_df_1$gene = gsub("\\.1","",keygenes_dko_df_1$gene)
+
+# Assigning gene group
+keygenes_dko_df_1$Group = ifelse(keygenes_dko_df_1$gene %in% CO_list_1, "General\nCO",
+                                         ifelse(keygenes_dko_df_1$gene %in% IHD_list_1, "IHD",
+                                                ifelse(keygenes_dko_df_1$gene %in% CBD_list_1, "CBD","GB")))
+keygenes_dko_df_1$Group = factor(keygenes_dko_df_1$Group,
+                               levels = c("General\nCO", "IHD", "CBD", "GB"))
+
+# Assigning sample group
+keygenes_dko_df_1$Target = ifelse(keygenes_dko_df_1$Target == "DKO", "ePCO\nin vivo", "PCO\nin vivo")
+keygenes_dko_df_1$Target = factor(keygenes_dko_df_1$Target,
+                                levels=c("PCO\nin vivo","ePCO\nin vivo"))
+
+# Changing gene names to match analysis
+# keygenes_dko_df_1[keygenes_dko_df_1$gene == "GGT1","gene"] <- "GGT"
+keygenes_dko_df_1[keygenes_dko_df_1$gene == "CYR61","gene"] <- "CCN1"
+
+```
+
+
+```{r Read in spatial data}
+# spatial_data = read.csv("../data/ExpressionHeatmap_Data.csv")
+# 
+# scaled_spatial_data = spatial_data
+# scaled_spatial_data$value = scale(scaled_spatial_data$value)
+scaled_spatial_data = keygenes_dko_df_1[c("gene","Sample_ID","value","Group","Target")]
+# scaled_spatial_data$Target = ifelse(grepl("ePCO",scaled_spatial_data$Target),"ePCO","PCO")
+
+InVitro_InVivo_data = rbind(reduced_logTMM,scaled_spatial_data)
+
+```
+
+```{r Generate heatmap}
+s_reduced_logTMM = reduced_logTMM
+s_reduced_logTMM$value = scale(s_reduced_logTMM$value)
+s_spatial_data = scaled_spatial_data
+s_spatial_data$value = scale(s_spatial_data$value)
+InVitro_InVivo_data = rbind(s_reduced_logTMM,s_spatial_data)
+```
+
+
+```{r Create dotplot}
+grouped_bar = InVitro_InVivo_data %>%
+  group_by(Target, Group) %>%
+  summarise(MEAN = mean(value),
+            SD = sd(value))
+
+grouped_bar = grouped_bar[!grouped_bar$Group=="General\nCO",]
+ggplot(grouped_bar,aes(Group, 
+                       forcats::fct_rev(Target), 
+                       colour=MEAN, 
+                       size = MEAN))+
+  geom_point(stat="identity", position = "dodge")+
+  scale_color_viridis_c(option = "magma",
+                        limits = c(-2.5,2.5),
+                        name = 'z-Score',
+                        breaks = c(-2.5,0,2.5))+
+  theme_classic()+
+  scale_size(name   = "z-score",
+             range = c(0, 12),
+             limits = c(-2.5,2.5),
+             breaks = c(-2.5,0,2.5)) +
+  xlab("") + ylab("") +
+  scale_y_discrete(labels=parse(text = c("atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))",
+                                            "atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))",
+                                            "atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))",
+                                            "atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))"))) + 
+  theme(axis.text.y = element_text(vjust = 0.75))
+```
+
+
+## 7. Generate new barplot with in vitro data
+
+```{r Read barplot data from previous analysis}
+bar_all_data_CO = read.csv("../../DKO_Analysis/res/ExpressionSummary/ExpressionSummary_010525/BarPlot_Data.csv")
+bar_all_data_CO$X = NULL
+bar_all_data_CO = bar_all_data_CO[c( "Sample_ID","gene","value","Target","Group")]
+
+invitro_CO = reduced_logTMM[reduced_logTMM$Group == "General\nCO",]
+general_co_data = rbind(bar_all_data_CO, invitro_CO)
+general_co_data$Target = gsub("atop(atop(textstyle('PCO'),textstyle('GB')))","atop(atop(textstyle('Prim'),textstyle('GB')))",general_co_data$Target)
+general_co_data$Target[general_co_data$Target == "WT"] = "atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))" 
+general_co_data$Target[general_co_data$Target == "DKO"] = "atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))" 
+general_co_data$Target = factor(general_co_data$Target,
+                                levels = c("atop(atop(textstyle('PCO'),textstyle(italic('in vitro'))))",
+                                           "atop(atop(textstyle('ePCO'),textstyle(italic('in vitro'))))",
+                                           "atop(atop(textstyle('PCO'),textstyle(italic('in vivo'))))",
+                                           "atop(atop(textstyle('ePCO'),textstyle(italic('in vivo'))))",
+                                           "atop(atop(textstyle('Prim'),textstyle('IHD')))",
+                                           "atop(atop(textstyle('Prim'),textstyle('CBD')))",
+                                           "atop(atop(textstyle('Prim'),textstyle('GB')))" ))
+
+ggplot(general_co_data, aes( y = value, x = Target), fill = "#7D7D7D", color = "#7D7D7D") +
+  geom_bar(
+    position = "dodge", width = 0.8, stat = "summary", fun = "mean",
+    color = "#7D7D7D", fill = "#7D7D7D", linewidth = .8
+  ) +
+  geom_point(colour = "black", fill = "white",
+    alpha = 0.3
+  ) + 
+  stat_summary(fun.ymin = function(x) mean(x) - sd(x), 
+           fun.ymax = function(x) mean(x) + sd(x), position ='dodge', 
+           geom = 'errorbar', color = "black",
+            width = 0.2, linewidth = 0.8,  na.rm = TRUE) + 
+  theme_classic() +
+  theme(legend.position = "None") +
+  labs(y="Mean Expresion (log(TMM))", x=NULL, fill="#7D7D7D") +
+  theme(aspect.ratio = 5/4) +
+      stat_summary(aes(label=round(..y..,2)), fun.y=mean, geom="text", size=4,
+             vjust = -6,  na.rm = TRUE) +
+  scale_y_continuous(expand =  expansion(mult = c(0, 0), 
+                                         add = c(0, 1)),
+                     limits = c(0, 12)) +
+  scale_x_discrete(labels = parse(text = levels(general_co_data$Target))) 
+```
+
+## 8. Generate Apoptosis pathview
+
+```{r Pathview apoptosis}
+library(pathview) 
+
+comp2_top.table = read.csv("../../GeoMx_fastq_40-1011318339/res/final_results_281124/PanCK_DEGs.csv")
+
+panck_peInput <- comp2_top.table$logFC
+names(panck_peInput) <- comp2_top.table$X
+panck_peInput <-na.omit(panck_peInput )
+panck_peInput  = sort(panck_peInput , decreasing = TRUE)
+
+ids<-bitr(names(panck_peInput), fromType = "SYMBOL", toType = "ENTREZID", OrgDb="org.Hs.eg.db")
+dedup_ids = ids[!duplicated(ids[c("SYMBOL")]),]
+
+df2 = comp2_top.table[comp2_top.table$X %in% dedup_ids$SYMBOL,]
+df2$Y = dedup_ids$ENTREZID
+panck_gene_list <- df2$logFC   
+names(panck_gene_list) <- df2$Y
+panck_gene_list<-na.omit(panck_gene_list)
+panck_gene_list = sort(panck_gene_list, decreasing = TRUE)
+
+## Apoptosis 
+pathview(gene.data=panck_gene_list, 
+         pathway.id="hsa04210", 
+         cex = 0.00001,
+         species = "hsa",
+         low = "green",
+         mid = "yellow",
+         high = "red")
+
+```
+
+
+Session information 
+```{r}
+sessionInfo()
+```
+
+
+
+
+
+
+
+
